@@ -530,8 +530,21 @@ struct ContentView: View {
         return allDisplayedGraphPoints.min { abs($0.x - xValue) < abs($1.x - xValue) }
     }
 
-    private var allDisplayedGraphPoints: [GraphPoint] {
-        displaySeries.flatMap { $0.points }
+    private var currentGraphPoints: [GraphPoint] {
+        graphPoints(for: steps, seriesLabel: currentSeriesLabel, seriesColor: .blue)
+    }
+
+    private var currentSeriesLabel: String {
+        let trimmed = athleteName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "Current Input"
+        }
+        return "\(trimmed) (\(shortDateString(date)))"
+    }
+
+    private var selectedComparisonTests: [LactateTest] {
+        store.tests.filter { comparedTestIDs.contains($0.id) }
+            .sorted { comparedTestIDs.firstIndex(of: $0.id)! < comparedTestIDs.firstIndex(of: $1.id)! }
     }
 
     private var displaySeries: [GraphSeries] {
@@ -551,11 +564,7 @@ struct ContentView: View {
 
         let colors: [Color] = [.orange, .purple]
         for (index, test) in selectedComparisonTests.enumerated() {
-            let points = graphPoints(
-                for: test.steps,
-                seriesLabel: testLabel(for: test),
-                seriesColor: colors[index]
-            )
+            let points = graphPoints(for: test.steps, seriesLabel: testLabel(for: test), seriesColor: colors[index])
             if !points.isEmpty {
                 series.append(
                     GraphSeries(
@@ -571,21 +580,8 @@ struct ContentView: View {
         return series
     }
 
-    private var currentGraphPoints: [GraphPoint] {
-        graphPoints(for: steps, seriesLabel: currentSeriesLabel, seriesColor: .blue)
-    }
-
-    private var currentSeriesLabel: String {
-        let trimmed = athleteName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            return "Current Input"
-        }
-        return "\(trimmed) (\(shortDateString(date)))"
-    }
-
-    private var selectedComparisonTests: [LactateTest] {
-        store.tests.filter { comparedTestIDs.contains($0.id) }
-            .sorted { comparedTestIDs.firstIndex(of: $0.id)! < comparedTestIDs.firstIndex(of: $1.id)! }
+    private var allDisplayedGraphPoints: [GraphPoint] {
+        displaySeries.flatMap { $0.points }
     }
 
     private func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
@@ -904,18 +900,10 @@ struct ContentView: View {
         guard data.count >= 2 else { return nil }
 
         let n = Double(data.count)
-        let sumX = data.reduce(0.0) { partial, point in
-            partial + point.x
-        }
-        let sumY = data.reduce(0.0) { partial, point in
-            partial + point.y
-        }
-        let sumXX = data.reduce(0.0) { partial, point in
-            partial + (point.x * point.x)
-        }
-        let sumXY = data.reduce(0.0) { partial, point in
-            partial + (point.x * point.y)
-        }
+        let sumX = data.reduce(0.0) { partial, point in partial + point.x }
+        let sumY = data.reduce(0.0) { partial, point in partial + point.y }
+        let sumXX = data.reduce(0.0) { partial, point in partial + (point.x * point.x) }
+        let sumXY = data.reduce(0.0) { partial, point in partial + (point.x * point.y) }
 
         let denominator = (n * sumXX) - (sumX * sumX)
         guard abs(denominator) > 0.000001 else { return nil }
@@ -948,13 +936,8 @@ struct ContentView: View {
             let y1 = p1.lactate
             let y2 = p2.lactate
 
-            if y1 == targetLactate {
-                return p1.metric
-            }
-
-            if y2 == targetLactate {
-                return p2.metric
-            }
+            if y1 == targetLactate { return p1.metric }
+            if y2 == targetLactate { return p2.metric }
 
             let crossesUp = y1 < targetLactate && y2 > targetLactate
             let crossesDown = y1 > targetLactate && y2 < targetLactate
@@ -1307,101 +1290,11 @@ struct LactateChartView: View {
 
     var body: some View {
         Chart {
-            RuleMark(y: .value("LT1", 2.0))
-                .foregroundStyle(.green)
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-
-            RuleMark(y: .value("LT2", 4.0))
-                .foregroundStyle(.red)
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-
-            ForEach(displaySeries) { series in
-                ForEach(series.points) { point in
-                    LineMark(
-                        x: .value(graphXAxis.title, point.x),
-                        y: .value("Lactate", point.lactate)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(series.color)
-                }
-
-                ForEach(series.points) { point in
-                    PointMark(
-                        x: .value(graphXAxis.title, point.x),
-                        y: .value("Lactate", point.lactate)
-                    )
-                    .foregroundStyle(series.color)
-                    .symbolSize(50)
-                }
-            }
-
-            if let lt1 = lt1Point {
-                RuleMark(x: .value("LT1 X", lt1.x))
-                    .foregroundStyle(.green)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-
-                PointMark(
-                    x: .value("LT1 Point X", lt1.x),
-                    y: .value("LT1 Point Y", lt1.lactate)
-                )
-                .foregroundStyle(.green)
-                .symbolSize(90)
-            }
-
-            if let dmax = dmaxPoint {
-                RuleMark(x: .value("Dmax X", dmax.x))
-                    .foregroundStyle(.purple)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-
-                PointMark(
-                    x: .value("Dmax Point X", dmax.x),
-                    y: .value("Dmax Point Y", dmax.lactate)
-                )
-                .foregroundStyle(.purple)
-                .symbolSize(100)
-            }
-
-            if let lt2 = lt2Point {
-                RuleMark(x: .value("LT2 X", lt2.x))
-                    .foregroundStyle(.red)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-
-                PointMark(
-                    x: .value("LT2 Point X", lt2.x),
-                    y: .value("LT2 Point Y", lt2.lactate)
-                )
-                .foregroundStyle(.red)
-                .symbolSize(90)
-            }
-
-            if let selected = selectedPoint {
-                RuleMark(x: .value("Selected X", selected.x))
-                    .foregroundStyle(.secondary)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-
-                PointMark(
-                    x: .value("Selected Point X", selected.x),
-                    y: .value("Selected Point Y", selected.lactate)
-                )
-                .foregroundStyle(selected.seriesColor)
-                .symbolSize(130)
-                .annotation(position: .top, alignment: .leading) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(selected.seriesLabel)
-                            .font(.caption)
-                            .bold()
-                        Text("Step \(selected.stepIndex)")
-                            .font(.caption2)
-                        Text("\(graphXAxis.title): \(formatXAxisValue(selected.x))")
-                            .font(.caption2)
-                        Text(String(format: "Lactate: %.2f", selected.lactate))
-                            .font(.caption2)
-                    }
-                    .padding(6)
-                    .background(Color(.systemBackground).opacity(0.95))
-                    .cornerRadius(8)
-                }
-            }
+            thresholdHorizontalMarks
+            seriesLineMarks
+            seriesPointMarks
+            thresholdVerticalMarks
+            selectedPointMarks
         }
         .chartXAxisLabel(graphXAxis.title)
         .chartYAxisLabel("Lactate (mmol/L)")
@@ -1431,6 +1324,120 @@ struct LactateChartView: View {
                                 }
                             }
                     )
+            }
+        }
+    }
+
+    @ChartContentBuilder
+    private var thresholdHorizontalMarks: some ChartContent {
+        RuleMark(y: .value("LT1", 2.0))
+            .foregroundStyle(.green)
+            .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+
+        RuleMark(y: .value("LT2", 4.0))
+            .foregroundStyle(.red)
+            .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+    }
+
+    @ChartContentBuilder
+    private var seriesLineMarks: some ChartContent {
+        ForEach(displaySeries) { series in
+            ForEach(series.points) { point in
+                LineMark(
+                    x: .value(graphXAxis.title, point.x),
+                    y: .value("Lactate", point.lactate),
+                    series: .value("Series", series.id)
+                )
+                .interpolationMethod(.monotone)
+                .foregroundStyle(series.color)
+            }
+        }
+    }
+
+    @ChartContentBuilder
+    private var seriesPointMarks: some ChartContent {
+        ForEach(displaySeries) { series in
+            ForEach(series.points) { point in
+                PointMark(
+                    x: .value(graphXAxis.title, point.x),
+                    y: .value("Lactate", point.lactate)
+                )
+                .foregroundStyle(series.color)
+                .symbolSize(50)
+            }
+        }
+    }
+
+    @ChartContentBuilder
+    private var thresholdVerticalMarks: some ChartContent {
+        if let lt1 = lt1Point {
+            RuleMark(x: .value("LT1 X", lt1.x))
+                .foregroundStyle(.green)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+
+            PointMark(
+                x: .value("LT1 Point X", lt1.x),
+                y: .value("LT1 Point Y", lt1.lactate)
+            )
+            .foregroundStyle(.green)
+            .symbolSize(90)
+        }
+
+        if let dmax = dmaxPoint {
+            RuleMark(x: .value("Dmax X", dmax.x))
+                .foregroundStyle(.purple)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+
+            PointMark(
+                x: .value("Dmax Point X", dmax.x),
+                y: .value("Dmax Point Y", dmax.lactate)
+            )
+            .foregroundStyle(.purple)
+            .symbolSize(100)
+        }
+
+        if let lt2 = lt2Point {
+            RuleMark(x: .value("LT2 X", lt2.x))
+                .foregroundStyle(.red)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+
+            PointMark(
+                x: .value("LT2 Point X", lt2.x),
+                y: .value("LT2 Point Y", lt2.lactate)
+            )
+            .foregroundStyle(.red)
+            .symbolSize(90)
+        }
+    }
+
+    @ChartContentBuilder
+    private var selectedPointMarks: some ChartContent {
+        if let selected = selectedPoint {
+            RuleMark(x: .value("Selected X", selected.x))
+                .foregroundStyle(.secondary)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+
+            PointMark(
+                x: .value("Selected Point X", selected.x),
+                y: .value("Selected Point Y", selected.lactate)
+            )
+            .foregroundStyle(selected.seriesColor)
+            .symbolSize(130)
+            .annotation(position: .top, alignment: .leading) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(selected.seriesLabel)
+                        .font(.caption)
+                        .bold()
+                    Text("Step \(selected.stepIndex)")
+                        .font(.caption2)
+                    Text("\(graphXAxis.title): \(formatXAxisValue(selected.x))")
+                        .font(.caption2)
+                    Text(String(format: "Lactate: %.2f", selected.lactate))
+                        .font(.caption2)
+                }
+                .padding(6)
+                .background(Color(.systemBackground).opacity(0.95))
+                .cornerRadius(8)
             }
         }
     }
