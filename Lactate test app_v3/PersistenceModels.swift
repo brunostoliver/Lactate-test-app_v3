@@ -1,0 +1,72 @@
+//
+//  PersistenceModels.swift
+//  Lactate test app_v3
+//
+//  Created by Bruno Oliveira on 3/15/26.
+//
+
+import Foundation
+import SwiftData
+
+@Model
+final class LactateTestEntity {
+    @Attribute(.unique) var id: UUID
+    var athleteName: String
+    var sportRawValue: String
+    var date: Date
+
+    @Relationship(deleteRule: .cascade, inverse: \LactateStepEntity.test)
+    var steps: [LactateStepEntity]
+
+    init(
+        id: UUID = UUID(),
+        athleteName: String,
+        sportRawValue: String,
+        date: Date,
+        steps: [LactateStepEntity] = []
+    ) {
+        self.id = id
+        self.athleteName = athleteName
+        self.sportRawValue = sportRawValue
+        self.date = date
+        self.steps = steps
+    }
+
+    var sport: Sport {
+        get { Sport(rawValue: sportRawValue) ?? .running }
+        set { sportRawValue = newValue.rawValue }
+    }
+}
+
+@Model
+final class LactateStepEntity {
+    @Attribute(.unique) var id: UUID
+    var stepIndex: Int
+    var lactate: Double?
+    var avgHeartRate: Int?
+    var runningPaceSecondsPerKm: Int?
+    var cyclingSpeedKmh: Double?
+    var powerWatts: Int?
+
+    var test: LactateTestEntity?
+
+    init(
+        id: UUID = UUID(),
+        stepIndex: Int,
+        lactate: Double? = nil,
+        avgHeartRate: Int? = nil,
+        runningPaceSecondsPerKm: Int? = nil,
+        cyclingSpeedKmh: Double? = nil,
+        powerWatts: Int? = nil,
+        test: LactateTestEntity? = nil
+    ) {
+        self.id = id
+        self.stepIndex = stepIndex
+        self.lactate = lactate
+        self.avgHeartRate = avgHeartRate
+        self.runningPaceSecondsPerKm = runningPaceSecondsPerKm
+        self.cyclingSpeedKmh = cyclingSpeedKmh
+        self.powerWatts = powerWatts
+        self.test = test
+    }
+}
