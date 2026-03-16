@@ -9,7 +9,7 @@ import SwiftUI
 import Charts
 
 struct ContentView: View {
-    @StateObject private var store = TestsStore()
+    @ObservedObject var store: SwiftDataTestsStore
     @State private var unitPreference: UnitPreference = .metric
 
     @State private var draft = LactateTestDraft()
@@ -19,6 +19,10 @@ struct ContentView: View {
     @State private var comparedTestIDs: [UUID] = []
     @State private var showFullScreenChart: Bool = false
     @State private var showDeleteSavedTestsAlert: Bool = false
+
+    init(store: SwiftDataTestsStore) {
+        self.store = store
+    }
 
     var body: some View {
         NavigationView {
@@ -506,7 +510,7 @@ struct ContentView: View {
 
     private func nearestPoint(toX xValue: Double) -> GraphPoint? {
         guard !allDisplayedGraphPoints.isEmpty else { return nil }
-        return allDisplayedGraphPoints.min { abs($0.x - xValue) < abs($1.x - xValue) }
+        return allDisplayedGraphPoints.min { abs($0.x - xValue) < abs($1.x - $0.x) ? false : abs($0.x - xValue) < abs($1.x - xValue) }
     }
 
     private var currentGraphPoints: [GraphPoint] {
@@ -1769,5 +1773,5 @@ struct FiveZoneThresholds {
 }
 
 #Preview {
-    ContentView()
+    ContentView(store: SwiftDataTestsStore())
 }

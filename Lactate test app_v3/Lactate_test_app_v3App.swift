@@ -2,7 +2,7 @@
 //  Lactate_test_app_v3App.swift
 //  Lactate test app_v3
 //
-//  Created by Bruno Oliveira on 3/15/26.
+//  Created by Leonor Oliveira on 3/15/26.
 //
 
 import SwiftUI
@@ -20,36 +20,47 @@ struct Lactate_test_app_v3App: App {
 
 private struct RootView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var store = TestsStore()
-    @State private var didAttemptMigration = false
+
+    @StateObject private var jsonStore = TestsStore()
+    @StateObject private var swiftDataStore = SwiftDataTestsStore()
+
+    @State private var didSetUpStore = false
+
+    private let migrationFlagKey = "didMigrateJSONToSwiftData"
 
     var body: some View {
-        ContentView()
+        ContentView(store: swiftDataStore)
             .onAppear {
-                guard !didAttemptMigration else { return }
-                didAttemptMigration = true
-
-                runMigrationVerification()
+                guard !didSetUpStore else { return }
+                didSetUpStore = true
+                setUpSwiftDataStore()
             }
     }
 
-    private func runMigrationVerification() {
+    private func setUpSwiftDataStore() {
+        swiftDataStore.configure(with: modelContext)
+
         do {
-            try MigrationService.importJSONTestsIfNeeded(
-                from: store,
-                into: modelContext
-            )
+            let alreadyMigrated = UserDefaults.standard.bool(forKey: migrationFlagKey)
+
+            if !alreadyMigrated {
+                try MigrationService.importJSONTestsIfNeeded(
+                    from: jsonStore,
+                    into: modelContext
+                )
+
+                UserDefaults.standard.set(true, forKey: migrationFlagKey)
+                print("JSON to SwiftData migration completed.")
+            } else {
+                print("JSON to SwiftData migration already completed previously.")
+            }
+
+            swiftDataStore.reload()
 
             let swiftDataTests = try MigrationService.loadAllSwiftDataTests(from: modelContext)
-
-            print("JSON tests available: \(store.tests.count)")
-            print("SwiftData tests available: \(swiftDataTests.count)")
-
-            for test in swiftDataTests {
-                print("SwiftData test: \(test.athleteName) | \(test.date) | steps: \(test.steps.count)")
-            }
+            print("SwiftData active store count: \(swiftDataTests.count)")
         } catch {
-            print("SwiftData migration or verification failed: \(error)")
+            print("SwiftData setup failed: \(error)")
         }
     }
 }
