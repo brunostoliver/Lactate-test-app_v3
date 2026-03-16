@@ -15,7 +15,7 @@ enum Sport: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
-struct LactateStep: Identifiable, Codable {
+struct LactateStep: Identifiable, Codable, Hashable {
     let id: UUID
     var stepIndex: Int
     var lactate: Double?
@@ -41,9 +41,20 @@ struct LactateStep: Identifiable, Codable {
         self.cyclingSpeedKmh = cyclingSpeedKmh
         self.powerWatts = powerWatts
     }
+
+    static func emptyStep(stepIndex: Int = 1) -> LactateStep {
+        LactateStep(
+            stepIndex: stepIndex,
+            lactate: nil,
+            avgHeartRate: nil,
+            runningPaceSecondsPerKm: nil,
+            cyclingSpeedKmh: nil,
+            powerWatts: nil
+        )
+    }
 }
 
-struct LactateTest: Identifiable, Codable {
+struct LactateTest: Identifiable, Codable, Hashable {
     let id: UUID
     var athleteName: String
     var sport: Sport
@@ -65,18 +76,49 @@ struct LactateTest: Identifiable, Codable {
     }
 }
 
-final class TestsStore: ObservableObject {
-    @Published var tests: [LactateTest] = [] {
-        didSet {
-            saveTests()
-        }
+struct LactateTestDraft {
+    var athleteName: String
+    var sport: Sport
+    var date: Date
+    var steps: [LactateStep]
+
+    init(
+        athleteName: String = "",
+        sport: Sport = .running,
+        date: Date = Date(),
+        steps: [LactateStep] = [LactateStep.emptyStep(stepIndex: 1)]
+    ) {
+        self.athleteName = athleteName
+        self.sport = sport
+        self.date = date
+        self.steps = steps
     }
+
+    func asLactateTest() -> LactateTest {
+        LactateTest(
+            athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Test" : athleteName,
+            sport: sport,
+            date: date,
+            steps: steps
+        )
+    }
+
+    mutating func reset() {
+        self = LactateTestDraft()
+    }
+}
+
+final class TestsStore: ObservableObject {
+    @Published private(set) var tests: [LactateTest] = []
 
     private let fileName = "lactate_tests.json"
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let fileManager: FileManager
 
-    init() {
+    init(fileManager: FileManager = .default) {
+        self.fileManager = fileManager
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
@@ -90,14 +132,23 @@ final class TestsStore: ObservableObject {
     }
 
     private var fileURL: URL {
-        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         return documentsDirectory.appendingPathComponent(fileName)
+    }
+
+    private func sortTests(_ tests: [LactateTest]) -> [LactateTest] {
+        tests.sorted { lhs, rhs in
+            if lhs.date != rhs.date {
+                return lhs.date > rhs.date
+            }
+            return lhs.athleteName.localizedCaseInsensitiveCompare(rhs.athleteName) == .orderedAscending
+        }
     }
 
     private func loadTests() {
         let url = fileURL
 
-        guard FileManager.default.fileExists(atPath: url.path) else {
+        guard fileManager.fileExists(atPath: url.path) else {
             tests = []
             return
         }
@@ -105,7 +156,7 @@ final class TestsStore: ObservableObject {
         do {
             let data = try Data(contentsOf: url)
             let decoded = try decoder.decode([LactateTest].self, from: data)
-            tests = decoded.sorted { $0.date > $1.date }
+            tests = sortTests(decoded)
         } catch {
             print("Failed to load tests: \(error)")
             tests = []
@@ -114,8 +165,13 @@ final class TestsStore: ObservableObject {
 
     private func saveTests() {
         do {
-            let data = try encoder.encode(tests)
+            let sorted = sortTests(tests)
+            let data = try encoder.encode(sorted)
             try data.write(to: fileURL, options: .atomic)
+
+            if tests != sorted {
+                tests = sorted
+            }
         } catch {
             print("Failed to save tests: \(error)")
         }
@@ -125,26 +181,36 @@ final class TestsStore: ObservableObject {
         loadTests()
     }
 
+    func appendTest(_ test: LactateTest) {
+        tests.append(test)
+        saveTests()
+    }
+
+    func updateTest(_ updatedTest: LactateTest) {
+        guard let index = tests.firstIndex(where: { $0.id == updatedTest.id }) else { return }
+        tests[index] = updatedTest
+        saveTests()
+    }
+
     func deleteTests(at offsets: IndexSet) {
         for offset in offsets.sorted(by: >) {
             tests.remove(at: offset)
         }
+        saveTests()
     }
 
     func deleteTest(id: UUID) {
         tests.removeAll { $0.id == id }
+        saveTests()
     }
 
     func replaceAllTests(with newTests: [LactateTest]) {
-        tests = newTests.sorted { $0.date > $1.date }
-    }
-
-    func appendTest(_ test: LactateTest) {
-        tests.append(test)
-        tests.sort { $0.date > $1.date }
+        tests = sortTests(newTests)
+        saveTests()
     }
 
     func clearAll() {
         tests = []
+        saveTests()
     }
 }
