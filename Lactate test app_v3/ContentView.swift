@@ -30,6 +30,7 @@ struct ContentView: View {
     @State private var selectedGraphPoint: GraphPoint? = nil
     @State private var comparedTestIDs: [UUID] = []
     @State private var showFullScreenChart: Bool = false
+    @State private var showDeleteSavedTestsAlert: Bool = false
 
     var body: some View {
         NavigationView {
@@ -67,6 +68,14 @@ struct ContentView: View {
                     formatXAxisValue(value)
                 }
             )
+        }
+        .alert("Delete all saved tests?", isPresented: $showDeleteSavedTestsAlert) {
+            Button("Delete", role: .destructive) {
+                deleteSavedTests()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will permanently erase all saved lactate tests stored in the app.")
         }
     }
 
@@ -543,8 +552,11 @@ struct ContentView: View {
     }
 
     private var selectedComparisonTests: [LactateTest] {
-        store.tests.filter { comparedTestIDs.contains($0.id) }
-            .sorted { comparedTestIDs.firstIndex(of: $0.id)! < comparedTestIDs.firstIndex(of: $1.id)! }
+        store.tests
+            .filter { comparedTestIDs.contains($0.id) }
+            .sorted { lhs, rhs in
+                (comparedTestIDs.firstIndex(of: lhs.id) ?? 0) < (comparedTestIDs.firstIndex(of: rhs.id) ?? 0)
+            }
     }
 
     private var displaySeries: [GraphSeries] {
@@ -564,7 +576,11 @@ struct ContentView: View {
 
         let colors: [Color] = [.orange, .purple]
         for (index, test) in selectedComparisonTests.enumerated() {
-            let points = graphPoints(for: test.steps, seriesLabel: testLabel(for: test), seriesColor: colors[index])
+            let points = graphPoints(
+                for: test.steps,
+                seriesLabel: testLabel(for: test),
+                seriesColor: colors[index]
+            )
             if !points.isEmpty {
                 series.append(
                     GraphSeries(
@@ -1085,8 +1101,15 @@ struct ContentView: View {
                     steps.isEmpty
                 )
 
-                Button(action: clearAllData) {
-                    Text("Clear All")
+                Button(action: resetForm) {
+                    Text("Reset Form")
+                        .fontWeight(.semibold)
+                }
+
+                Button(action: {
+                    showDeleteSavedTestsAlert = true
+                }) {
+                    Text("Delete Saved Tests")
                         .fontWeight(.semibold)
                 }
                 .foregroundColor(.red)
@@ -1095,8 +1118,9 @@ struct ContentView: View {
     }
 
     private func saveCurrentTest() {
+        let trimmedName = athleteName.trimmingCharacters(in: .whitespacesAndNewlines)
         let test = LactateTest(
-            athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Test" : athleteName,
+            athleteName: trimmedName.isEmpty ? "Untitled Test" : trimmedName,
             sport: sport,
             date: date,
             steps: steps
@@ -1195,10 +1219,15 @@ struct ContentView: View {
         selectedGraphPoint = nil
     }
 
-    private func clearAllData() {
+    private func resetForm() {
         resetEntryFields()
+        comparedTestIDs = []
+    }
+
+    private func deleteSavedTests() {
         store.clearAll()
         comparedTestIDs = []
+        selectedGraphPoint = nil
     }
 
     private func loadSampleTest1() {
@@ -1766,12 +1795,6 @@ struct WorkloadLactatePoint {
 struct MetricLactatePair {
     let metric: Double
     let lactate: Double
-}
-
-struct MetricThresholds {
-    let lt1: Double
-    let dmax: Double
-    let lt2: Double
 }
 
 struct WorkloadThresholdResult {
