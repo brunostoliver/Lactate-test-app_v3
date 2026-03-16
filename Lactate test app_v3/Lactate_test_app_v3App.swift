@@ -33,6 +33,7 @@ private struct RootView: View {
     }
 
     private func setUpSwiftDataStore() {
+        LegacyStorageCleanupService.deleteLegacyJSONFileIfNeeded()
         swiftDataStore.configure(with: modelContext)
 
         do {

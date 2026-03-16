@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Combine
 
 enum Sport: String, CaseIterable, Identifiable, Codable {
     case running
@@ -105,112 +104,5 @@ struct LactateTestDraft {
 
     mutating func reset() {
         self = LactateTestDraft()
-    }
-}
-
-final class TestsStore: ObservableObject {
-    @Published private(set) var tests: [LactateTest] = []
-
-    private let fileName = "lactate_tests.json"
-    private let encoder: JSONEncoder
-    private let decoder: JSONDecoder
-    private let fileManager: FileManager
-
-    init(fileManager: FileManager = .default) {
-        self.fileManager = fileManager
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        encoder.dateEncodingStrategy = .iso8601
-        self.encoder = encoder
-
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        self.decoder = decoder
-
-        loadTests()
-    }
-
-    private var fileURL: URL {
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return documentsDirectory.appendingPathComponent(fileName)
-    }
-
-    private func sortTests(_ tests: [LactateTest]) -> [LactateTest] {
-        tests.sorted { lhs, rhs in
-            if lhs.date != rhs.date {
-                return lhs.date > rhs.date
-            }
-            return lhs.athleteName.localizedCaseInsensitiveCompare(rhs.athleteName) == .orderedAscending
-        }
-    }
-
-    private func loadTests() {
-        let url = fileURL
-
-        guard fileManager.fileExists(atPath: url.path) else {
-            tests = []
-            return
-        }
-
-        do {
-            let data = try Data(contentsOf: url)
-            let decoded = try decoder.decode([LactateTest].self, from: data)
-            tests = sortTests(decoded)
-        } catch {
-            print("Failed to load tests: \(error)")
-            tests = []
-        }
-    }
-
-    private func saveTests() {
-        do {
-            let sorted = sortTests(tests)
-            let data = try encoder.encode(sorted)
-            try data.write(to: fileURL, options: .atomic)
-
-            if tests != sorted {
-                tests = sorted
-            }
-        } catch {
-            print("Failed to save tests: \(error)")
-        }
-    }
-
-    func reloadFromDisk() {
-        loadTests()
-    }
-
-    func appendTest(_ test: LactateTest) {
-        tests.append(test)
-        saveTests()
-    }
-
-    func updateTest(_ updatedTest: LactateTest) {
-        guard let index = tests.firstIndex(where: { $0.id == updatedTest.id }) else { return }
-        tests[index] = updatedTest
-        saveTests()
-    }
-
-    func deleteTests(at offsets: IndexSet) {
-        for offset in offsets.sorted(by: >) {
-            tests.remove(at: offset)
-        }
-        saveTests()
-    }
-
-    func deleteTest(id: UUID) {
-        tests.removeAll { $0.id == id }
-        saveTests()
-    }
-
-    func replaceAllTests(with newTests: [LactateTest]) {
-        tests = sortTests(newTests)
-        saveTests()
-    }
-
-    func clearAll() {
-        tests = []
-        saveTests()
     }
 }

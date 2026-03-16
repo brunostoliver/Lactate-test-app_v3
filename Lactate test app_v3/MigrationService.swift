@@ -8,36 +8,7 @@
 import Foundation
 import SwiftData
 
-enum MigrationError: Error {
-    case saveFailed
-}
-
 struct MigrationService {
-    static func importJSONTestsIfNeeded(
-        from store: TestsStore,
-        into context: ModelContext
-    ) throws {
-        let descriptor = FetchDescriptor<LactateTestEntity>()
-        let existingEntities = try context.fetch(descriptor)
-
-        // If SwiftData already has records, do not import again.
-        guard existingEntities.isEmpty else { return }
-
-        let testsToImport = store.tests
-        guard !testsToImport.isEmpty else { return }
-
-        for test in testsToImport {
-            let entity = test.makeEntity()
-            context.insert(entity)
-        }
-
-        do {
-            try context.save()
-        } catch {
-            throw MigrationError.saveFailed
-        }
-    }
-
     static func clearAllSwiftDataTests(from context: ModelContext) throws {
         let descriptor = FetchDescriptor<LactateTestEntity>()
         let entities = try context.fetch(descriptor)
