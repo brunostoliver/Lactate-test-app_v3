@@ -289,6 +289,9 @@ struct ContentView: View {
                         Button("Export All as CSV") {
                             exportAllSavedTestsCSV()
                         }
+                        Button("Export All as PDF") {
+                            exportAllSavedTestsPDF()
+                        }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "square.and.arrow.up")
@@ -341,6 +344,9 @@ struct ContentView: View {
                                 }
                                 Button("Export as CSV") {
                                     exportSingleTestCSV(test)
+                                }
+                                Button("Export as PDF") {
+                                    exportSingleTestPDF(test)
                                 }
                             } label: {
                                 Text("Export")
@@ -536,6 +542,8 @@ struct ContentView: View {
         showDeleteSingleTestAlert = false
     }
 
+    // MARK: - Export JSON
+
     private func exportSingleTestJSON(_ test: LactateTest) {
         do {
             let encoder = JSONEncoder()
@@ -567,6 +575,8 @@ struct ContentView: View {
             showExportErrorAlert = true
         }
     }
+
+    // MARK: - Export CSV
 
     private func exportSingleTestCSV(_ test: LactateTest) {
         do {
@@ -672,19 +682,441 @@ struct ContentView: View {
         return values.map(csvEscape).joined(separator: ",")
     }
 
-    private func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
-        guard let value else { return "" }
-        return String(format: "%.\(decimals)f", value)
+    // MARK: - Export PDF
+
+    private func exportSingleTestPDF(_ test: LactateTest) {
+        do {
+            let data = try pdfData(for: [test])
+            let filename = sanitizedFilename("\(test.athleteName)_\(isoDateString(test.date))_lactate_report.pdf")
+            let url = try writeExportFile(data: data, filename: filename)
+            shareItem = ShareItem(url: url)
+        } catch {
+            exportErrorMessage = "Could not export this test as PDF. \(error.localizedDescription)"
+            showExportErrorAlert = true
+        }
     }
 
-    private func optionalIntString(_ value: Int?) -> String {
-        guard let value else { return "" }
-        return String(value)
+    private func exportAllSavedTestsPDF() {
+        do {
+            let data = try pdfData(for: store.tests)
+            let filename = sanitizedFilename("all_lactate_reports_\(timestampString()).pdf")
+            let url = try writeExportFile(data: data, filename: filename)
+            shareItem = ShareItem(url: url)
+        } catch {
+            exportErrorMessage = "Could not export all saved tests as PDF. \(error.localizedDescription)"
+            showExportErrorAlert = true
+        }
     }
 
-    private func csvEscape(_ value: String) -> String {
-        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-        return "\"\(escaped)\""
+    private func pdfData(for tests: [LactateTest]) throws -> Data {
+        let pageWidth: CGFloat = 612
+        let pageHeight: CGFloat = 792
+        let margin: CGFloat = 40
+        let contentWidth = pageWidth - (margin * 2)
+
+        let bounds = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+        let renderer = UIGraphicsPDFRenderer(bounds: bounds)
+
+        let data = renderer.pdfData { context in
+            var currentY: CGFloat = 0
+
+            func beginNewPage() {
+                context.beginPage()
+                currentY = margin
+            }
+
+            func ensureSpace(_ neededHeight: CGFloat) {
+                if currentY + neededHeight > pageHeight - margin {
+                    beginNewPage()
+                }
+            }
+
+            func drawLine(_ text: String, font: UIFont, color: UIColor = .black, spacingAfter: CGFloat = 6) {
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: font,
+                    .foregroundColor: color
+                ]
+
+                let rect = NSString(string: text).boundingRect(
+                    with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    attributes: attributes,
+                    context: nil
+                )
+
+                ensureSpace(rect.height + spacingAfter)
+                NSString(string: text).draw(
+                    in: CGRect(x: margin, y: currentY, width: contentWidth, height: rect.height),
+                    withAttributes: attributes
+                )
+                currentY += rect.height + spacingAfter
+            }
+
+            func drawSectionHeader(_ text: String) {
+                currentY += 4
+                drawLine(text, font: .boldSystemFont(ofSize: 16), spacingAfter: 8)
+            }
+
+            func drawDivider() {
+                ensureSpace(12)
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: margin, y: currentY))
+                path.addLine(to: CGPoint(x: pageWidth - margin, y: currentY))
+                UIColor.systemGray3.setStroke()
+                path.lineWidth = 1
+                path.stroke()
+                currentY += 10
+            }
+
+            beginNewPage()
+
+            drawLine("Lactate Test Report", font: .boldSystemFont(ofSize: 22), spacingAfter: 12)
+            drawLine("Generated: \(DateFormatter.pdfTimestamp.string(from: Date()))", font: .systemFont(ofSize: 11), color: .darkGray, spacingAfter: 14)
+
+            for (index, test) in tests.enumerated() {
+                if index > 0 {
+                    drawDivider()
+                }
+
+                drawSectionHeader("Athlete")
+                drawLine("Name: \(test.athleteName)", font: .systemFont(ofSize: 12))
+                drawLine("Sport: \(test.sport.rawValue.capitalized)", font: .systemFont(ofSize: 12))
+                drawLine("Date: \(shortDateString(test.date))", font: .systemFont(ofSize: 12), spacingAfter: 12)
+
+                drawSectionHeader("Steps")
+                drawLine(stepTableHeader(for: test.sport), font: .boldSystemFont(ofSize: 11), spacingAfter: 4)
+
+                for step in test.steps.sorted(by: { $0.stepIndex < $1.stepIndex }) {
+                    drawLine(stepTableRow(for: test.sport, step: step), font: .systemFont(ofSize: 10), spacingAfter: 3)
+                }
+
+                currentY += 8
+
+                let analysis = analysisSummary(for: test)
+
+                drawSectionHeader("Threshold Summary")
+                for line in analysis.thresholdLines {
+                    drawLine(line, font: .systemFont(ofSize: 12), spacingAfter: 4)
+                }
+
+                currentY += 8
+                drawSectionHeader("Training Zones")
+                for line in analysis.zoneLines {
+                    drawLine(line, font: .systemFont(ofSize: 12), spacingAfter: 4)
+                }
+
+                currentY += 10
+            }
+        }
+
+        return data
+    }
+
+    private func analysisSummary(for test: LactateTest) -> ExportAnalysisSummary {
+        let graphPoints = graphPointsForExport(test)
+
+        let lt1 = interpolatedThresholdPoint(targetLactate: 2.0, points: graphPoints)
+        let dmaxLactate = dmaxPoint(from: primaryWorkloadPoints(for: test))?.lactate
+        let dmax = dmaxLactate.flatMap { interpolatedThresholdPoint(targetLactate: $0, points: graphPoints) }
+        let modifiedDmax = modifiedDmaxPoint(from: primaryWorkloadPoints(for: test))
+        let logLog = logLogBreakpoint(from: primaryWorkloadPoints(for: test))
+        let lt2 = interpolatedThresholdPoint(targetLactate: 4.0, points: graphPoints)
+
+        var thresholdLines: [String] = []
+
+        if let lt1 {
+            thresholdLines.append("LT1 (2.0 mmol/L): \(formatExportXAxisValue(lt1.x))")
+        } else {
+            thresholdLines.append("LT1 (2.0 mmol/L): not reached")
+        }
+
+        if let dmaxLactate, let dmax {
+            thresholdLines.append("Dmax: \(formatExportXAxisValue(dmax.x)) at lactate \(String(format: "%.2f", dmaxLactate)) mmol/L")
+        } else {
+            thresholdLines.append("Dmax: not enough data")
+        }
+
+        if let modifiedDmax {
+            thresholdLines.append("Modified Dmax (Newell): \(formatPrimaryWorkload(modifiedDmax.workload, for: test)) at lactate \(String(format: "%.2f", modifiedDmax.lactate)) mmol/L")
+        } else {
+            thresholdLines.append("Modified Dmax (Newell): not enough data")
+        }
+
+        if let logLog {
+            thresholdLines.append("Log-log breakpoint: \(formatPrimaryWorkload(logLog.workload, for: test)) at lactate \(String(format: "%.2f", logLog.lactate)) mmol/L")
+        } else {
+            thresholdLines.append("Log-log breakpoint: not enough data")
+        }
+
+        if let lt2 {
+            thresholdLines.append("LT2 (4.0 mmol/L): \(formatExportXAxisValue(lt2.x))")
+        } else {
+            thresholdLines.append("LT2 (4.0 mmol/L): not reached")
+        }
+
+        let zones = exportTrainingZoneLines(for: test)
+        return ExportAnalysisSummary(thresholdLines: thresholdLines, zoneLines: zones)
+    }
+
+    private func graphPointsForExport(_ test: LactateTest) -> [GraphPoint] {
+        test.steps.compactMap { step in
+            guard let lactate = step.lactate, let power = step.powerWatts else { return nil }
+            return GraphPoint(
+                stepIndex: step.stepIndex,
+                x: Double(power),
+                lactate: lactate,
+                heartRate: step.avgHeartRate,
+                power: power,
+                seriesLabel: test.athleteName,
+                seriesColor: .blue
+            )
+        }
+        .sorted { $0.x < $1.x }
+    }
+
+    private func interpolatedThresholdPoint(targetLactate: Double, points: [GraphPoint]) -> ThresholdPoint? {
+        guard points.count >= 2 else { return nil }
+
+        for index in 0..<(points.count - 1) {
+            let p1 = points[index]
+            let p2 = points[index + 1]
+
+            let y1 = p1.lactate
+            let y2 = p2.lactate
+
+            if y1 == targetLactate {
+                return ThresholdPoint(x: p1.x, lactate: targetLactate)
+            }
+
+            if y2 == targetLactate {
+                return ThresholdPoint(x: p2.x, lactate: targetLactate)
+            }
+
+            let crossesUp = y1 < targetLactate && y2 > targetLactate
+            let crossesDown = y1 > targetLactate && y2 < targetLactate
+
+            if crossesUp || crossesDown {
+                let fraction = (targetLactate - y1) / (y2 - y1)
+                let interpolatedX = p1.x + fraction * (p2.x - p1.x)
+                return ThresholdPoint(x: interpolatedX, lactate: targetLactate)
+            }
+        }
+
+        return nil
+    }
+
+    private func primaryWorkloadPoints(for test: LactateTest) -> [WorkloadLactatePoint] {
+        switch test.sport {
+        case .cycling:
+            let powerPoints = test.steps.compactMap { step -> WorkloadLactatePoint? in
+                guard let power = step.powerWatts, let lactate = step.lactate else { return nil }
+                return WorkloadLactatePoint(workload: Double(power), lactate: lactate)
+            }
+            .sorted { $0.workload < $1.workload }
+
+            if powerPoints.count >= 3 { return powerPoints }
+
+            let speedPoints = test.steps.compactMap { step -> WorkloadLactatePoint? in
+                guard let speed = step.cyclingSpeedKmh, let lactate = step.lactate else { return nil }
+                return WorkloadLactatePoint(workload: speed, lactate: lactate)
+            }
+            .sorted { $0.workload < $1.workload }
+
+            if speedPoints.count >= 3 { return speedPoints }
+
+            return test.steps.compactMap { step -> WorkloadLactatePoint? in
+                guard let hr = step.avgHeartRate, let lactate = step.lactate else { return nil }
+                return WorkloadLactatePoint(workload: Double(hr), lactate: lactate)
+            }
+            .sorted { $0.workload < $1.workload }
+
+        case .running:
+            let paceSpeedPoints = test.steps.compactMap { step -> WorkloadLactatePoint? in
+                guard let paceSeconds = step.runningPaceSecondsPerKm,
+                      let lactate = step.lactate,
+                      paceSeconds > 0 else { return nil }
+                let speedKmh = 3600.0 / Double(paceSeconds)
+                return WorkloadLactatePoint(workload: speedKmh, lactate: lactate)
+            }
+            .sorted { $0.workload < $1.workload }
+
+            if paceSpeedPoints.count >= 3 { return paceSpeedPoints }
+
+            let powerPoints = test.steps.compactMap { step -> WorkloadLactatePoint? in
+                guard let power = step.powerWatts, let lactate = step.lactate else { return nil }
+                return WorkloadLactatePoint(workload: Double(power), lactate: lactate)
+            }
+            .sorted { $0.workload < $1.workload }
+
+            if powerPoints.count >= 3 { return powerPoints }
+
+            return test.steps.compactMap { step -> WorkloadLactatePoint? in
+                guard let hr = step.avgHeartRate, let lactate = step.lactate else { return nil }
+                return WorkloadLactatePoint(workload: Double(hr), lactate: lactate)
+            }
+            .sorted { $0.workload < $1.workload }
+        }
+    }
+
+    private func exportTrainingZoneLines(for test: LactateTest) -> [String] {
+        var lines: [String] = []
+
+        if let powerZones = powerFiveZones(for: test) {
+            lines.append("Power")
+            lines.append("  Z1 Recovery: < \(formatPower(powerZones.z1Upper))")
+            lines.append("  Z2 Endurance: \(formatPower(powerZones.z1Upper)) to \(formatPower(powerZones.z2Upper))")
+            lines.append("  Z3 Tempo: \(formatPower(powerZones.z2Upper)) to \(formatPower(powerZones.z3Upper))")
+            lines.append("  Z4 Threshold: \(formatPower(powerZones.z3Upper)) to \(formatPower(powerZones.z4Upper))")
+            lines.append("  Z5 VO₂max: > \(formatPower(powerZones.z4Upper))")
+        }
+
+        if let hrZones = heartRateFiveZones(for: test) {
+            lines.append("Heart Rate")
+            lines.append("  Z1 Recovery: < \(formatHeartRate(hrZones.z1Upper))")
+            lines.append("  Z2 Endurance: \(formatHeartRate(hrZones.z1Upper)) to \(formatHeartRate(hrZones.z2Upper))")
+            lines.append("  Z3 Tempo: \(formatHeartRate(hrZones.z2Upper)) to \(formatHeartRate(hrZones.z3Upper))")
+            lines.append("  Z4 Threshold: \(formatHeartRate(hrZones.z3Upper)) to \(formatHeartRate(hrZones.z4Upper))")
+            lines.append("  Z5 VO₂max: > \(formatHeartRate(hrZones.z4Upper))")
+        }
+
+        if test.sport == .cycling, let speedZones = cyclingSpeedFiveZones(for: test) {
+            lines.append("Speed")
+            lines.append("  Z1 Recovery: < \(formatSpeed(speedZones.z1Upper))")
+            lines.append("  Z2 Endurance: \(formatSpeed(speedZones.z1Upper)) to \(formatSpeed(speedZones.z2Upper))")
+            lines.append("  Z3 Tempo: \(formatSpeed(speedZones.z2Upper)) to \(formatSpeed(speedZones.z3Upper))")
+            lines.append("  Z4 Threshold: \(formatSpeed(speedZones.z3Upper)) to \(formatSpeed(speedZones.z4Upper))")
+            lines.append("  Z5 VO₂max: > \(formatSpeed(speedZones.z4Upper))")
+        }
+
+        if test.sport == .running, let paceZones = runningPaceFiveZones(for: test) {
+            lines.append("Pace")
+            lines.append("  Z1 Recovery: slower than \(formatPace(paceZones.z1Upper))")
+            lines.append("  Z2 Endurance: \(formatPace(paceZones.z1Upper)) to \(formatPace(paceZones.z2Upper))")
+            lines.append("  Z3 Tempo: \(formatPace(paceZones.z2Upper)) to \(formatPace(paceZones.z3Upper))")
+            lines.append("  Z4 Threshold: \(formatPace(paceZones.z3Upper)) to \(formatPace(paceZones.z4Upper))")
+            lines.append("  Z5 VO₂max: faster than \(formatPace(paceZones.z4Upper))")
+        }
+
+        if lines.isEmpty {
+            lines.append("Not enough data to calculate training zones.")
+        }
+
+        return lines
+    }
+
+    private func preferredMiddleLactate(for test: LactateTest) -> Double? {
+        modifiedDmaxPoint(from: primaryWorkloadPoints(for: test))?.lactate ?? dmaxPoint(from: primaryWorkloadPoints(for: test))?.lactate
+    }
+
+    private func heartRateFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+        let pairs = test.steps.compactMap { step -> MetricLactatePair? in
+            guard let hr = step.avgHeartRate, let lactate = step.lactate else { return nil }
+            return MetricLactatePair(metric: Double(hr), lactate: lactate)
+        }
+        return fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate(for: test))
+    }
+
+    private func powerFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+        let pairs = test.steps.compactMap { step -> MetricLactatePair? in
+            guard let power = step.powerWatts, let lactate = step.lactate else { return nil }
+            return MetricLactatePair(metric: Double(power), lactate: lactate)
+        }
+        return fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate(for: test))
+    }
+
+    private func cyclingSpeedFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+        let pairs = test.steps.compactMap { step -> MetricLactatePair? in
+            guard let speed = step.cyclingSpeedKmh, let lactate = step.lactate else { return nil }
+            return MetricLactatePair(metric: speed, lactate: lactate)
+        }
+        return fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate(for: test))
+    }
+
+    private func runningPaceFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+        let pairs = test.steps.compactMap { step -> MetricLactatePair? in
+            guard let paceSeconds = step.runningPaceSecondsPerKm,
+                  let lactate = step.lactate,
+                  paceSeconds > 0 else { return nil }
+            let speedKmh = 3600.0 / Double(paceSeconds)
+            return MetricLactatePair(metric: speedKmh, lactate: lactate)
+        }
+
+        guard let speedZones = fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate(for: test)) else {
+            return nil
+        }
+
+        return FiveZoneThresholds(
+            z1Upper: 3600.0 / speedZones.z1Upper,
+            z2Upper: 3600.0 / speedZones.z2Upper,
+            z3Upper: 3600.0 / speedZones.z3Upper,
+            z4Upper: 3600.0 / speedZones.z4Upper
+        )
+    }
+
+    private func formatExportXAxisValue(_ value: Double) -> String {
+        "\(Int(value.rounded())) W"
+    }
+
+    private func primaryWorkloadLabel(for test: LactateTest) -> String {
+        switch test.sport {
+        case .cycling:
+            if test.steps.contains(where: { $0.powerWatts != nil && $0.lactate != nil }) {
+                return "Power"
+            }
+            if test.steps.contains(where: { $0.cyclingSpeedKmh != nil && $0.lactate != nil }) {
+                return "Speed"
+            }
+            return "Heart Rate"
+
+        case .running:
+            if test.steps.contains(where: { $0.runningPaceSecondsPerKm != nil && $0.lactate != nil }) {
+                return "Speed"
+            }
+            if test.steps.contains(where: { $0.powerWatts != nil && $0.lactate != nil }) {
+                return "Power"
+            }
+            return "Heart Rate"
+        }
+    }
+
+    private func formatPrimaryWorkload(_ value: Double, for test: LactateTest) -> String {
+        switch primaryWorkloadLabel(for: test) {
+        case "Power":
+            return formatPower(value)
+        case "Speed":
+            return formatSpeed(value)
+        default:
+            return formatHeartRate(value)
+        }
+    }
+
+    private func stepTableHeader(for sport: Sport) -> String {
+        switch sport {
+        case .running:
+            return "Step | Lactate | HR | Pace | Power"
+        case .cycling:
+            return "Step | Lactate | HR | Speed | Power"
+        }
+    }
+
+    private func stepTableRow(for sport: Sport, step: LactateStep) -> String {
+        let lactate = step.lactate.map { String(format: "%.2f mmol/L", $0) } ?? "-"
+        let hr = step.avgHeartRate.map { "\($0) bpm" } ?? "-"
+        let power = step.powerWatts.map { "\($0) W" } ?? "-"
+
+        switch sport {
+        case .running:
+            let pace = step.runningPaceSecondsPerKm.map {
+                PaceFormatter.string(fromSecondsPerKm: $0, unit: unitPreference)
+            } ?? "-"
+            return "\(step.stepIndex) | \(lactate) | \(hr) | \(pace) | \(power)"
+
+        case .cycling:
+            let speed = step.cyclingSpeedKmh.map {
+                SpeedFormatter.string(fromKmh: $0, unit: unitPreference)
+            } ?? "-"
+            return "\(step.stepIndex) | \(lactate) | \(hr) | \(speed) | \(power)"
+        }
     }
 
     private func writeExportFile(data: Data, filename: String) throws -> URL {
@@ -715,6 +1147,21 @@ struct ContentView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         return formatter.string(from: Date())
+    }
+
+    private func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
+        guard let value else { return "" }
+        return String(format: "%.\(decimals)f", value)
+    }
+
+    private func optionalIntString(_ value: Int?) -> String {
+        guard let value else { return "" }
+        return String(value)
+    }
+
+    private func csvEscape(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
     }
 
     private func loadSampleTest1() {
@@ -2294,6 +2741,11 @@ enum ExportError: LocalizedError {
     }
 }
 
+struct ExportAnalysisSummary {
+    let thresholdLines: [String]
+    let zoneLines: [String]
+}
+
 struct GraphPoint: Identifiable {
     let id = UUID()
     let stepIndex: Int
@@ -2358,6 +2810,15 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
+}
+
+extension DateFormatter {
+    static var pdfTimestamp: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }
 }
 
 #Preview {
