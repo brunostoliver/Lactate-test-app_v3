@@ -38,11 +38,21 @@ struct ContentView: View {
 
                         editingBannerSection
                         formSection
-                        tableSection
-                        comparisonSection
-                        graphSection
-                        thresholdsSection
-                        trainingZonesSection
+
+                        if hasEnoughDataForAnalysis {
+                            tableSection
+                        }
+
+                        if shouldShowComparisonSection {
+                            comparisonSection
+                        }
+
+                        if hasEnoughDataForAnalysis {
+                            graphSection
+                            thresholdsSection
+                            trainingZonesSection
+                        }
+
                         saveSection
                         savedTestsSection
                     }
@@ -111,9 +121,19 @@ struct ContentView: View {
         Group {
             if let editingTest {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Viewing loaded saved test — \(editingTest.athleteName)")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                    HStack(spacing: 8) {
+                        Text("Loaded")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.orange.opacity(0.25))
+                            .cornerRadius(6)
+
+                        Text("Viewing loaded saved test — \(editingTest.athleteName)")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
 
                     Text("You may review the values below or modify them and tap Update Test.")
                         .font(.caption)
@@ -581,6 +601,24 @@ struct ContentView: View {
 
     private var currentGraphPoints: [GraphPoint] {
         graphPoints(for: draft.steps, seriesLabel: currentSeriesLabel, seriesColor: .blue)
+    }
+
+    private var hasEnoughDataForAnalysis: Bool {
+        let lactateCount = draft.steps.filter { $0.lactate != nil }.count
+
+        let xAxisCount: Int
+        switch graphXAxis {
+        case .power:
+            xAxisCount = draft.steps.filter { $0.powerWatts != nil }.count
+        case .heartRate:
+            xAxisCount = draft.steps.filter { $0.avgHeartRate != nil }.count
+        }
+
+        return lactateCount >= 2 && xAxisCount >= 2 && currentGraphPoints.count >= 2
+    }
+
+    private var shouldShowComparisonSection: Bool {
+        hasEnoughDataForAnalysis && !selectedComparisonTests.isEmpty
     }
 
     private var currentSeriesLabel: String {
@@ -1180,10 +1218,20 @@ struct ContentView: View {
             } else {
                 ForEach(store.tests) { test in
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack {
+                        HStack(alignment: .center, spacing: 8) {
                             Text(test.athleteName).bold()
                             Text(test.sport.rawValue.capitalized)
                             Text(shortDateString(test.date))
+
+                            if isLoaded(test) {
+                                Text("Loaded")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.orange.opacity(0.25))
+                                    .cornerRadius(6)
+                            }
                         }
 
                         Text("Steps: \(test.steps.count)")
@@ -1230,7 +1278,10 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(isLoaded(test) ? Color.orange.opacity(0.08) : Color.clear)
+                    .cornerRadius(8)
                 }
             }
         }
@@ -1247,6 +1298,10 @@ struct ContentView: View {
 
         graphXAxis = .power
         selectedGraphPoint = nil
+    }
+
+    private func isLoaded(_ test: LactateTest) -> Bool {
+        editingTest?.id == test.id
     }
 
     private func isCompared(_ test: LactateTest) -> Bool {
