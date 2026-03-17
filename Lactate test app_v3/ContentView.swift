@@ -20,6 +20,8 @@ struct ContentView: View {
     @State private var showFullScreenChart: Bool = false
     @State private var showDeleteSavedTestsAlert: Bool = false
     @State private var editingTest: LactateTest? = nil
+    @State private var testPendingDeletion: LactateTest? = nil
+    @State private var showDeleteSingleTestAlert: Bool = false
 
     init(store: SwiftDataTestsStore) {
         self.store = store
@@ -69,6 +71,16 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This will permanently erase all saved lactate tests stored in the app.")
+        }
+        .alert("Delete this saved test?", isPresented: $showDeleteSingleTestAlert, presenting: testPendingDeletion) { test in
+            Button("Delete", role: .destructive) {
+                deleteSingleSavedTest(test)
+            }
+            Button("Cancel", role: .cancel) {
+                testPendingDeletion = nil
+            }
+        } message: { test in
+            Text("This will permanently delete \(test.athleteName) from saved tests.")
         }
     }
 
@@ -1150,6 +1162,16 @@ struct ContentView: View {
                                     .fontWeight(.semibold)
                             }
 
+                            Button(action: {
+                                testPendingDeletion = test
+                                showDeleteSingleTestAlert = true
+                            }) {
+                                Text("Delete")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(.red)
+
                             if isCompared(test) {
                                 Button(action: {
                                     removeComparedTest(test)
@@ -1228,6 +1250,24 @@ struct ContentView: View {
         comparedTestIDs = []
         selectedGraphPoint = nil
         editingTest = nil
+        testPendingDeletion = nil
+        showDeleteSingleTestAlert = false
+    }
+
+    private func deleteSingleSavedTest(_ test: LactateTest) {
+        if let editingTest, editingTest.id == test.id {
+            resetEntryFields()
+        }
+
+        comparedTestIDs.removeAll { $0 == test.id }
+        store.deleteTest(id: test.id)
+
+        if let selectedGraphPoint, selectedGraphPoint.seriesLabel == testLabel(for: test) {
+            self.selectedGraphPoint = nil
+        }
+
+        testPendingDeletion = nil
+        showDeleteSingleTestAlert = false
     }
 
     private func loadSampleTest1() {
