@@ -29,21 +29,33 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    formSection
-                    tableSection
-                    comparisonSection
-                    graphSection
-                    thresholdsSection
-                    trainingZonesSection
-                    saveSection
-                    savedTestsSection
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Color.clear
+                            .frame(height: 1)
+                            .id("topOfForm")
+
+                        editingBannerSection
+                        formSection
+                        tableSection
+                        comparisonSection
+                        graphSection
+                        thresholdsSection
+                        trainingZonesSection
+                        saveSection
+                        savedTestsSection
+                    }
+                    .padding()
                 }
-                .padding()
+                .navigationBarTitle("Lactate Test Intake", displayMode: .inline)
+                .navigationBarItems(trailing: unitsPicker)
+                .onChange(of: editingTest?.id) {
+                    withAnimation {
+                        proxy.scrollTo("topOfForm", anchor: .top)
+                    }
+                }
             }
-            .navigationBarTitle("Lactate Test Intake", displayMode: .inline)
-            .navigationBarItems(trailing: unitsPicker)
         }
         .fullScreenCover(isPresented: $showFullScreenChart) {
             FullScreenLactateChartView(
@@ -95,10 +107,35 @@ struct ContentView: View {
         .frame(width: 220)
     }
 
+    private var editingBannerSection: some View {
+        Group {
+            if let editingTest {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Viewing loaded saved test — \(editingTest.athleteName)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text("You may review the values below or modify them and tap Update Test.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Button("Cancel Viewing/Editing") {
+                        resetEntryFields()
+                    }
+                    .font(.caption)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.15))
+                .cornerRadius(8)
+            }
+        }
+    }
+
     private var formSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(editingTest == nil ? "Test Details" : "Editing Saved Test")
+                Text(editingTest == nil ? "Test Details" : "Loaded Saved Test")
                     .font(.headline)
 
                 Spacer()
@@ -111,7 +148,7 @@ struct ContentView: View {
             }
 
             if editingTest != nil {
-                Text("You are editing an existing saved test. Tap Save Test to update it.")
+                Text("This saved test is loaded into the form. Tap Update Test to save any changes.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1157,7 +1194,7 @@ struct ContentView: View {
                             Button(action: {
                                 loadTestIntoDraft(test)
                             }) {
-                                Text("Edit")
+                                Text("Load/Edit")
                                     .font(.caption)
                                     .fontWeight(.semibold)
                             }
