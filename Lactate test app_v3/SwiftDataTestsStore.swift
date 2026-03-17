@@ -76,21 +76,35 @@ final class SwiftDataTestsStore: ObservableObject {
                 modelContext.delete(existingStep)
             }
 
-            let newSteps = updatedTest.steps
+            let replacementSteps = updatedTest.steps
                 .sorted { $0.stepIndex < $1.stepIndex }
                 .map { step -> LactateStepEntity in
-                    let entity = step.makeEntity()
-                    entity.test = existing
-                    return entity
+                    let stepEntity = step.makeEntity()
+                    stepEntity.test = existing
+                    return stepEntity
                 }
 
-            existing.steps = newSteps
+            existing.steps = replacementSteps
 
             try modelContext.save()
             reload()
         } catch {
             print("Failed to update SwiftData test: \(error)")
         }
+    }
+
+    func updateTest(_ existingTest: LactateTest, with draft: LactateTestDraft) {
+        let updatedTest = LactateTest(
+            id: existingTest.id,
+            athleteName: draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "Untitled Test"
+                : draft.athleteName,
+            sport: draft.sport,
+            date: draft.date,
+            steps: draft.steps
+        )
+
+        updateTest(updatedTest)
     }
 
     func deleteTest(id: UUID) {

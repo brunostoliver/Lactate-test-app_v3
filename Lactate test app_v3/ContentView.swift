@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var comparedTestIDs: [UUID] = []
     @State private var showFullScreenChart: Bool = false
     @State private var showDeleteSavedTestsAlert: Bool = false
+    @State private var editingTest: LactateTest? = nil
 
     init(store: SwiftDataTestsStore) {
         self.store = store
@@ -84,8 +85,24 @@ struct ContentView: View {
 
     private var formSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Test Details")
-                .font(.headline)
+            HStack {
+                Text(editingTest == nil ? "Test Details" : "Editing Saved Test")
+                    .font(.headline)
+
+                Spacer()
+
+                if let editingTest {
+                    Text(shortDateString(editingTest.date))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if editingTest != nil {
+                Text("You are editing an existing saved test. Tap Save Test to update it.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
 
             TextField("Athlete name", text: $draft.athleteName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -510,7 +527,7 @@ struct ContentView: View {
 
     private func nearestPoint(toX xValue: Double) -> GraphPoint? {
         guard !allDisplayedGraphPoints.isEmpty else { return nil }
-        return allDisplayedGraphPoints.min { abs($0.x - xValue) < abs($1.x - $0.x) ? false : abs($0.x - xValue) < abs($1.x - xValue) }
+        return allDisplayedGraphPoints.min { abs($0.x - xValue) < abs($1.x - xValue) }
     }
 
     private var currentGraphPoints: [GraphPoint] {
@@ -1067,7 +1084,7 @@ struct ContentView: View {
 
             HStack(spacing: 12) {
                 Button(action: saveCurrentTest) {
-                    Text("Save Test")
+                    Text(editingTest == nil ? "Save Test" : "Update Test")
                         .fontWeight(.semibold)
                 }
                 .disabled(
@@ -1076,7 +1093,7 @@ struct ContentView: View {
                 )
 
                 Button(action: resetForm) {
-                    Text("Reset Form")
+                    Text(editingTest == nil ? "Reset Form" : "Cancel Edit")
                         .fontWeight(.semibold)
                 }
 
@@ -1092,7 +1109,12 @@ struct ContentView: View {
     }
 
     private func saveCurrentTest() {
-        store.appendTest(draft.asLactateTest())
+        if let editingTest {
+            store.updateTest(editingTest, with: draft)
+        } else {
+            store.appendTest(draft.asLactateTest())
+        }
+
         resetEntryFields()
     }
 
@@ -1120,6 +1142,14 @@ struct ContentView: View {
                             .foregroundColor(.secondary)
 
                         HStack(spacing: 10) {
+                            Button(action: {
+                                loadTestIntoDraft(test)
+                            }) {
+                                Text("Edit")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+
                             if isCompared(test) {
                                 Button(action: {
                                     removeComparedTest(test)
@@ -1147,6 +1177,19 @@ struct ContentView: View {
         }
     }
 
+    private func loadTestIntoDraft(_ test: LactateTest) {
+        editingTest = test
+        draft = LactateTestDraft(
+            athleteName: test.athleteName,
+            sport: test.sport,
+            date: test.date,
+            steps: test.steps
+        )
+
+        graphXAxis = .power
+        selectedGraphPoint = nil
+    }
+
     private func isCompared(_ test: LactateTest) -> Bool {
         comparedTestIDs.contains(test.id)
     }
@@ -1170,6 +1213,7 @@ struct ContentView: View {
 
     private func resetEntryFields() {
         draft.reset()
+        editingTest = nil
         graphXAxis = .power
         selectedGraphPoint = nil
     }
@@ -1183,6 +1227,7 @@ struct ContentView: View {
         store.clearAll()
         comparedTestIDs = []
         selectedGraphPoint = nil
+        editingTest = nil
     }
 
     private func loadSampleTest1() {
@@ -1248,6 +1293,7 @@ struct ContentView: View {
             steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
         )
 
+        editingTest = nil
         graphXAxis = .power
         selectedGraphPoint = nil
     }
