@@ -10,7 +10,9 @@ import Charts
 
 struct ContentView: View {
     @ObservedObject var store: SwiftDataTestsStore
+
     @State private var unitPreference: UnitPreference = .metric
+    @AppStorage("appearanceMode") private var appearanceModeRawValue: String = AppearanceMode.system.rawValue
 
     @State private var draft = LactateTestDraft()
 
@@ -55,6 +57,8 @@ struct ContentView: View {
 
                         saveSection
                         savedTestsSection
+                        appearanceSection
+                        sampleTestsSection
                     }
                     .padding()
                 }
@@ -67,6 +71,7 @@ struct ContentView: View {
                 }
             }
         }
+        .preferredColorScheme(appearanceMode.colorScheme)
         .fullScreenCover(isPresented: $showFullScreenChart) {
             FullScreenLactateChartView(
                 title: "Lactate Curve",
@@ -104,6 +109,10 @@ struct ContentView: View {
         } message: { test in
             Text("This will permanently delete \(test.athleteName) from saved tests.")
         }
+    }
+
+    private var appearanceMode: AppearanceMode {
+        AppearanceMode(rawValue: appearanceModeRawValue) ?? .system
     }
 
     private var unitsPicker: some View {
@@ -185,40 +194,17 @@ struct ContentView: View {
 
             DatePicker("Date", selection: $draft.date, displayedComponents: .date)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Sample Tests")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                Button(action: loadSampleTest1) {
-                    HStack {
-                        Image(systemName: "doc.badge.plus")
-                        Text("Load Test Sample 1")
-                    }
-                }
-
-                Button(action: loadSampleTest2) {
-                    HStack {
-                        Image(systemName: "doc.badge.plus")
-                        Text("Load Test Sample 2")
-                    }
-                }
-
-                Button(action: loadSampleTest3) {
-                    HStack {
-                        Image(systemName: "doc.badge.plus")
-                        Text("Load Test Sample 3")
-                    }
-                }
-            }
-
             Divider()
 
             Text("Steps")
                 .font(.headline)
 
             ForEach($draft.steps) { $step in
-                StepEditor(step: $step, sport: draft.sport)
+                StepEditor(
+                    step: $step,
+                    sport: draft.sport,
+                    unitPreference: unitPreference
+                )
             }
 
             HStack {
@@ -242,6 +228,168 @@ struct ContentView: View {
         }
     }
 
+    private var saveSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            HStack(spacing: 12) {
+                Button(action: saveCurrentTest) {
+                    Text(editingTest == nil ? "Save Test" : "Update Test")
+                        .fontWeight(.semibold)
+                }
+                .disabled(
+                    draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                    draft.steps.isEmpty
+                )
+
+                Button(action: resetForm) {
+                    Text(editingTest == nil ? "Reset Form" : "Cancel Edit")
+                        .fontWeight(.semibold)
+                }
+
+                Button(action: {
+                    showDeleteSavedTestsAlert = true
+                }) {
+                    Text("Delete Saved Tests")
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.red)
+            }
+        }
+    }
+
+    private var savedTestsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Text("Saved Tests")
+                .font(.headline)
+
+            if store.tests.isEmpty {
+                Text("No tests saved yet.")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(store.tests) { test in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Text(test.athleteName).bold()
+                            Text(test.sport.rawValue.capitalized)
+                            Text(shortDateString(test.date))
+
+                            if isLoaded(test) {
+                                Text("Loaded")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.orange.opacity(0.25))
+                                    .cornerRadius(6)
+                            }
+                        }
+
+                        Text("Steps: \(test.steps.count)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        HStack(spacing: 10) {
+                            Button(action: {
+                                loadTestIntoDraft(test)
+                            }) {
+                                Text("Load/Edit")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+
+                            Button(action: {
+                                testPendingDeletion = test
+                                showDeleteSingleTestAlert = true
+                            }) {
+                                Text("Delete")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(.red)
+
+                            if isCompared(test) {
+                                Button(action: {
+                                    removeComparedTest(test)
+                                }) {
+                                    Text("Remove Comparison")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(.red)
+                            } else {
+                                Button(action: {
+                                    addComparedTest(test)
+                                }) {
+                                    Text("Compare")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                }
+                                .disabled(!canAddMoreComparisons(for: test))
+                            }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(isLoaded(test) ? Color.orange.opacity(0.08) : Color.clear)
+                    .cornerRadius(8)
+                }
+            }
+        }
+    }
+
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Text("Appearance")
+                .font(.headline)
+
+            Picker("Appearance", selection: $appearanceModeRawValue) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.title).tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(SegmentedPickerStyle())
+        }
+    }
+
+    private var sampleTestsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Text("Sample Tests")
+                .font(.headline)
+
+            Text("Temporary utilities for loading example data.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Button(action: loadSampleTest1) {
+                HStack {
+                    Image(systemName: "doc.badge.plus")
+                    Text("Load Test Sample 1")
+                }
+            }
+
+            Button(action: loadSampleTest2) {
+                HStack {
+                    Image(systemName: "doc.badge.plus")
+                    Text("Load Test Sample 2")
+                }
+            }
+
+            Button(action: loadSampleTest3) {
+                HStack {
+                    Image(systemName: "doc.badge.plus")
+                    Text("Load Test Sample 3")
+                }
+            }
+        }
+    }
+
     private func addStep() {
         let nextIndex = (draft.steps.map { $0.stepIndex }.max() ?? 0) + 1
         draft.steps.append(LactateStep.emptyStep(stepIndex: nextIndex))
@@ -252,6 +400,159 @@ struct ContentView: View {
         if draft.steps.isEmpty {
             draft.steps = [LactateStep.emptyStep(stepIndex: 1)]
         }
+        selectedGraphPoint = nil
+    }
+
+    private func saveCurrentTest() {
+        if let editingTest {
+            store.updateTest(editingTest, with: draft)
+        } else {
+            store.appendTest(draft.asLactateTest())
+        }
+
+        resetEntryFields()
+    }
+
+    private func loadTestIntoDraft(_ test: LactateTest) {
+        editingTest = test
+        draft = LactateTestDraft(
+            athleteName: test.athleteName,
+            sport: test.sport,
+            date: test.date,
+            steps: test.steps
+        )
+
+        graphXAxis = .power
+        selectedGraphPoint = nil
+    }
+
+    private func isLoaded(_ test: LactateTest) -> Bool {
+        editingTest?.id == test.id
+    }
+
+    private func isCompared(_ test: LactateTest) -> Bool {
+        comparedTestIDs.contains(test.id)
+    }
+
+    private func canAddMoreComparisons(for test: LactateTest) -> Bool {
+        if comparedTestIDs.contains(test.id) { return true }
+        return comparedTestIDs.count < 2
+    }
+
+    private func addComparedTest(_ test: LactateTest) {
+        guard !comparedTestIDs.contains(test.id) else { return }
+        guard comparedTestIDs.count < 2 else { return }
+        comparedTestIDs.append(test.id)
+        selectedGraphPoint = nil
+    }
+
+    private func removeComparedTest(_ test: LactateTest) {
+        comparedTestIDs.removeAll { $0 == test.id }
+        selectedGraphPoint = nil
+    }
+
+    private func resetEntryFields() {
+        draft.reset()
+        editingTest = nil
+        graphXAxis = .power
+        selectedGraphPoint = nil
+    }
+
+    private func resetForm() {
+        resetEntryFields()
+        comparedTestIDs = []
+    }
+
+    private func deleteSavedTests() {
+        store.clearAll()
+        comparedTestIDs = []
+        selectedGraphPoint = nil
+        editingTest = nil
+        testPendingDeletion = nil
+        showDeleteSingleTestAlert = false
+    }
+
+    private func deleteSingleSavedTest(_ test: LactateTest) {
+        if let editingTest, editingTest.id == test.id {
+            resetEntryFields()
+        }
+
+        comparedTestIDs.removeAll { $0 == test.id }
+        store.deleteTest(id: test.id)
+
+        if let selectedGraphPoint, selectedGraphPoint.seriesLabel == testLabel(for: test) {
+            self.selectedGraphPoint = nil
+        }
+
+        testPendingDeletion = nil
+        showDeleteSingleTestAlert = false
+    }
+
+    private func loadSampleTest1() {
+        loadCyclingSample(
+            athleteName: "Sample Test 1",
+            dateString: "04-29-23",
+            lactates: [1.7, 1.3, 1.9, 2.4, 3.4, 7.1],
+            heartRates: [114, 124, 127, 133, 138, 147],
+            powers: [127, 124, 142, 162, 183, 204]
+        )
+    }
+
+    private func loadSampleTest2() {
+        loadCyclingSample(
+            athleteName: "Sample Test 2",
+            dateString: "04-04-23",
+            lactates: [1.6, 1.7, 1.8, 3.2, 3.7, 7.2],
+            heartRates: [107, 112, 119, 129, 132, 141],
+            powers: [118, 122, 143, 163, 183, 209]
+        )
+    }
+
+    private func loadSampleTest3() {
+        loadCyclingSample(
+            athleteName: "Sample Test 3",
+            dateString: "02-25-23",
+            lactates: [1.9, 1.7, 2.6, 3.8, 5.6],
+            heartRates: [115, 119, 127, 136, 141],
+            powers: [125, 122, 143, 164, 183]
+        )
+    }
+
+    private func loadCyclingSample(
+        athleteName: String,
+        dateString: String,
+        lactates: [Double],
+        heartRates: [Int],
+        powers: [Int]
+    ) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd-yy"
+
+        var loadedSteps: [LactateStep] = []
+        let count = min(lactates.count, heartRates.count, powers.count)
+
+        for index in 0..<count {
+            loadedSteps.append(
+                LactateStep(
+                    stepIndex: index + 1,
+                    lactate: lactates[index],
+                    avgHeartRate: heartRates[index],
+                    runningPaceSecondsPerKm: nil,
+                    cyclingSpeedKmh: nil,
+                    powerWatts: powers[index]
+                )
+            )
+        }
+
+        draft = LactateTestDraft(
+            athleteName: athleteName,
+            sport: .cycling,
+            date: formatter.date(from: dateString) ?? Date(),
+            steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
+        )
+
+        editingTest = nil
+        graphXAxis = .power
         selectedGraphPoint = nil
     }
 
@@ -1165,271 +1466,6 @@ struct ContentView: View {
         }
     }
 
-    private var saveSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            HStack(spacing: 12) {
-                Button(action: saveCurrentTest) {
-                    Text(editingTest == nil ? "Save Test" : "Update Test")
-                        .fontWeight(.semibold)
-                }
-                .disabled(
-                    draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                    draft.steps.isEmpty
-                )
-
-                Button(action: resetForm) {
-                    Text(editingTest == nil ? "Reset Form" : "Cancel Edit")
-                        .fontWeight(.semibold)
-                }
-
-                Button(action: {
-                    showDeleteSavedTestsAlert = true
-                }) {
-                    Text("Delete Saved Tests")
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.red)
-            }
-        }
-    }
-
-    private func saveCurrentTest() {
-        if let editingTest {
-            store.updateTest(editingTest, with: draft)
-        } else {
-            store.appendTest(draft.asLactateTest())
-        }
-
-        resetEntryFields()
-    }
-
-    private var savedTestsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            Text("Saved Tests")
-                .font(.headline)
-
-            if store.tests.isEmpty {
-                Text("No tests saved yet.")
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(store.tests) { test in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .center, spacing: 8) {
-                            Text(test.athleteName).bold()
-                            Text(test.sport.rawValue.capitalized)
-                            Text(shortDateString(test.date))
-
-                            if isLoaded(test) {
-                                Text("Loaded")
-                                    .font(.caption2)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.orange.opacity(0.25))
-                                    .cornerRadius(6)
-                            }
-                        }
-
-                        Text("Steps: \(test.steps.count)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 10) {
-                            Button(action: {
-                                loadTestIntoDraft(test)
-                            }) {
-                                Text("Load/Edit")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-
-                            Button(action: {
-                                testPendingDeletion = test
-                                showDeleteSingleTestAlert = true
-                            }) {
-                                Text("Delete")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.red)
-
-                            if isCompared(test) {
-                                Button(action: {
-                                    removeComparedTest(test)
-                                }) {
-                                    Text("Remove Comparison")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                }
-                                .foregroundColor(.red)
-                            } else {
-                                Button(action: {
-                                    addComparedTest(test)
-                                }) {
-                                    Text("Compare")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                }
-                                .disabled(!canAddMoreComparisons(for: test))
-                            }
-                        }
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .background(isLoaded(test) ? Color.orange.opacity(0.08) : Color.clear)
-                    .cornerRadius(8)
-                }
-            }
-        }
-    }
-
-    private func loadTestIntoDraft(_ test: LactateTest) {
-        editingTest = test
-        draft = LactateTestDraft(
-            athleteName: test.athleteName,
-            sport: test.sport,
-            date: test.date,
-            steps: test.steps
-        )
-
-        graphXAxis = .power
-        selectedGraphPoint = nil
-    }
-
-    private func isLoaded(_ test: LactateTest) -> Bool {
-        editingTest?.id == test.id
-    }
-
-    private func isCompared(_ test: LactateTest) -> Bool {
-        comparedTestIDs.contains(test.id)
-    }
-
-    private func canAddMoreComparisons(for test: LactateTest) -> Bool {
-        if comparedTestIDs.contains(test.id) { return true }
-        return comparedTestIDs.count < 2
-    }
-
-    private func addComparedTest(_ test: LactateTest) {
-        guard !comparedTestIDs.contains(test.id) else { return }
-        guard comparedTestIDs.count < 2 else { return }
-        comparedTestIDs.append(test.id)
-        selectedGraphPoint = nil
-    }
-
-    private func removeComparedTest(_ test: LactateTest) {
-        comparedTestIDs.removeAll { $0 == test.id }
-        selectedGraphPoint = nil
-    }
-
-    private func resetEntryFields() {
-        draft.reset()
-        editingTest = nil
-        graphXAxis = .power
-        selectedGraphPoint = nil
-    }
-
-    private func resetForm() {
-        resetEntryFields()
-        comparedTestIDs = []
-    }
-
-    private func deleteSavedTests() {
-        store.clearAll()
-        comparedTestIDs = []
-        selectedGraphPoint = nil
-        editingTest = nil
-        testPendingDeletion = nil
-        showDeleteSingleTestAlert = false
-    }
-
-    private func deleteSingleSavedTest(_ test: LactateTest) {
-        if let editingTest, editingTest.id == test.id {
-            resetEntryFields()
-        }
-
-        comparedTestIDs.removeAll { $0 == test.id }
-        store.deleteTest(id: test.id)
-
-        if let selectedGraphPoint, selectedGraphPoint.seriesLabel == testLabel(for: test) {
-            self.selectedGraphPoint = nil
-        }
-
-        testPendingDeletion = nil
-        showDeleteSingleTestAlert = false
-    }
-
-    private func loadSampleTest1() {
-        loadCyclingSample(
-            athleteName: "Sample Test 1",
-            dateString: "04-29-23",
-            lactates: [1.7, 1.3, 1.9, 2.4, 3.4, 7.1],
-            heartRates: [114, 124, 127, 133, 138, 147],
-            powers: [127, 124, 142, 162, 183, 204]
-        )
-    }
-
-    private func loadSampleTest2() {
-        loadCyclingSample(
-            athleteName: "Sample Test 2",
-            dateString: "04-04-23",
-            lactates: [1.6, 1.7, 1.8, 3.2, 3.7, 7.2],
-            heartRates: [107, 112, 119, 129, 132, 141],
-            powers: [118, 122, 143, 163, 183, 209]
-        )
-    }
-
-    private func loadSampleTest3() {
-        loadCyclingSample(
-            athleteName: "Sample Test 3",
-            dateString: "02-25-23",
-            lactates: [1.9, 1.7, 2.6, 3.8, 5.6],
-            heartRates: [115, 119, 127, 136, 141],
-            powers: [125, 122, 143, 164, 183]
-        )
-    }
-
-    private func loadCyclingSample(
-        athleteName: String,
-        dateString: String,
-        lactates: [Double],
-        heartRates: [Int],
-        powers: [Int]
-    ) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd-yy"
-
-        var loadedSteps: [LactateStep] = []
-        let count = min(lactates.count, heartRates.count, powers.count)
-
-        for index in 0..<count {
-            loadedSteps.append(
-                LactateStep(
-                    stepIndex: index + 1,
-                    lactate: lactates[index],
-                    avgHeartRate: heartRates[index],
-                    runningPaceSecondsPerKm: nil,
-                    cyclingSpeedKmh: nil,
-                    powerWatts: powers[index]
-                )
-            )
-        }
-
-        draft = LactateTestDraft(
-            athleteName: athleteName,
-            sport: .cycling,
-            date: formatter.date(from: dateString) ?? Date(),
-            steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
-        )
-
-        editingTest = nil
-        graphXAxis = .power
-        selectedGraphPoint = nil
-    }
-
     private func shortDateString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -1751,6 +1787,7 @@ struct FullScreenLactateChartView: View {
 struct StepEditor: View {
     @Binding var step: LactateStep
     let sport: Sport
+    let unitPreference: UnitPreference
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1771,11 +1808,17 @@ struct StepEditor: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
 
                 if sport == .running {
-                    PaceInput(secondsPerKm: $step.runningPaceSecondsPerKm)
+                    PaceInput(
+                        secondsPerKm: $step.runningPaceSecondsPerKm,
+                        unitPreference: unitPreference
+                    )
                 } else {
-                    TextField("Speed (km/h)", text: doubleStringBinding($step.cyclingSpeedKmh))
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    TextField(
+                        speedFieldTitle,
+                        text: speedStringBinding($step.cyclingSpeedKmh)
+                    )
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
 
                 TextField("Power (W)", text: intStringBinding($step.powerWatts))
@@ -1788,6 +1831,15 @@ struct StepEditor: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.secondarySystemBackground))
         )
+    }
+
+    private var speedFieldTitle: String {
+        switch unitPreference {
+        case .metric:
+            return "Speed (km/h)"
+        case .imperial:
+            return "Speed (mph)"
+        }
     }
 
     private func intStringBinding(_ value: Binding<Int?>) -> Binding<String> {
@@ -1823,10 +1875,48 @@ struct StepEditor: View {
             }
         )
     }
+
+    private func speedStringBinding(_ value: Binding<Double?>) -> Binding<String> {
+        Binding<String>(
+            get: {
+                guard let kmh = value.wrappedValue else { return "" }
+
+                switch unitPreference {
+                case .metric:
+                    return String(format: "%.1f", kmh)
+                case .imperial:
+                    let mph = kmh / 1.60934
+                    return String(format: "%.1f", mph)
+                }
+            },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !trimmed.isEmpty else {
+                    value.wrappedValue = nil
+                    return
+                }
+
+                guard let enteredValue = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else {
+                    value.wrappedValue = nil
+                    return
+                }
+
+                switch unitPreference {
+                case .metric:
+                    value.wrappedValue = enteredValue
+                case .imperial:
+                    value.wrappedValue = enteredValue * 1.60934
+                }
+            }
+        )
+    }
 }
 
 struct PaceInput: View {
     @Binding var secondsPerKm: Int?
+    let unitPreference: UnitPreference
+
     @State private var minutes: String = ""
     @State private var seconds: String = ""
 
@@ -1858,28 +1948,63 @@ struct PaceInput: View {
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .frame(width: 50)
 
-            Text("min/km")
+            Text(paceUnitLabel)
         }
         .onAppear(perform: syncFromBinding)
+        .onChange(of: unitPreference) {
+            syncFromBinding()
+        }
+    }
+
+    private var paceUnitLabel: String {
+        switch unitPreference {
+        case .metric:
+            return "min/km"
+        case .imperial:
+            return "min/mile"
+        }
     }
 
     private func syncFromBinding() {
-        guard let total = secondsPerKm else {
+        guard let totalSecondsPerKm = secondsPerKm else {
             minutes = ""
             seconds = ""
             return
         }
 
-        minutes = String(total / 60)
-        seconds = String(format: "%02d", total % 60)
+        let displayedTotalSeconds: Double
+        switch unitPreference {
+        case .metric:
+            displayedTotalSeconds = Double(totalSecondsPerKm)
+        case .imperial:
+            displayedTotalSeconds = Double(totalSecondsPerKm) * 1.60934
+        }
+
+        let rounded = Int(displayedTotalSeconds.rounded())
+        minutes = String(rounded / 60)
+        seconds = String(format: "%02d", rounded % 60)
     }
 
     private func updateBinding() {
         let m = Int(minutes) ?? 0
         let s = Int(seconds) ?? 0
         let clampedS = max(0, min(59, s))
-        let total = m * 60 + clampedS
-        secondsPerKm = total > 0 ? total : nil
+        let displayedTotal = m * 60 + clampedS
+
+        guard displayedTotal > 0 else {
+            secondsPerKm = nil
+            return
+        }
+
+        let storedSecondsPerKm: Double
+        switch unitPreference {
+        case .metric:
+            storedSecondsPerKm = Double(displayedTotal)
+        case .imperial:
+            storedSecondsPerKm = Double(displayedTotal) / 1.60934
+        }
+
+        secondsPerKm = Int(storedSecondsPerKm.rounded())
     }
 }
 
@@ -1895,6 +2020,36 @@ enum GraphXAxis: String, CaseIterable, Identifiable {
             return "Power"
         case .heartRate:
             return "Heart Rate"
+        }
+    }
+}
+
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system:
+            return "System"
+        case .light:
+            return "Light"
+        case .dark:
+            return "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system:
+            return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
         }
     }
 }
