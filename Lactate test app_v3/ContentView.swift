@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Charts
+import UIKit
 
 struct ContentView: View {
     @ObservedObject var store: SwiftDataTestsStore
@@ -24,6 +25,10 @@ struct ContentView: View {
     @State private var editingTest: LactateTest? = nil
     @State private var testPendingDeletion: LactateTest? = nil
     @State private var showDeleteSingleTestAlert: Bool = false
+
+    @State private var shareItem: ShareItem? = nil
+    @State private var exportErrorMessage: String? = nil
+    @State private var showExportErrorAlert: Bool = false
 
     init(store: SwiftDataTestsStore) {
         self.store = store
@@ -91,6 +96,9 @@ struct ContentView: View {
                 }
             )
         }
+        .sheet(item: $shareItem) { item in
+            ShareSheet(activityItems: [item.url])
+        }
         .alert("Delete all saved tests?", isPresented: $showDeleteSavedTestsAlert) {
             Button("Delete", role: .destructive) {
                 deleteSavedTests()
@@ -108,6 +116,11 @@ struct ContentView: View {
             }
         } message: { test in
             Text("This will permanently delete \(test.athleteName) from saved tests.")
+        }
+        .alert("Export Failed", isPresented: $showExportErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(exportErrorMessage ?? "An unknown export error occurred.")
         }
     }
 
@@ -262,8 +275,30 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
 
-            Text("Saved Tests")
-                .font(.headline)
+            HStack {
+                Text("Saved Tests")
+                    .font(.headline)
+
+                Spacer()
+
+                if !store.tests.isEmpty {
+                    Menu {
+                        Button("Export All as JSON") {
+                            exportAllSavedTestsJSON()
+                        }
+                        Button("Export All as CSV") {
+                            exportAllSavedTestsCSV()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Export All")
+                        }
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    }
+                }
+            }
 
             if store.tests.isEmpty {
                 Text("No tests saved yet.")
@@ -296,6 +331,19 @@ struct ContentView: View {
                                 loadTestIntoDraft(test)
                             }) {
                                 Text("Load/Edit")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+
+                            Menu {
+                                Button("Export as JSON") {
+                                    exportSingleTestJSON(test)
+                                }
+                                Button("Export as CSV") {
+                                    exportSingleTestCSV(test)
+                                }
+                            } label: {
+                                Text("Export")
                                     .font(.caption)
                                     .fontWeight(.semibold)
                             }
@@ -486,6 +534,187 @@ struct ContentView: View {
 
         testPendingDeletion = nil
         showDeleteSingleTestAlert = false
+    }
+
+    private func exportSingleTestJSON(_ test: LactateTest) {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+
+            let data = try encoder.encode(test)
+            let filename = sanitizedFilename("\(test.athleteName)_\(isoDateString(test.date))_lactate_test.json")
+            let url = try writeExportFile(data: data, filename: filename)
+            shareItem = ShareItem(url: url)
+        } catch {
+            exportErrorMessage = "Could not export this test as JSON. \(error.localizedDescription)"
+            showExportErrorAlert = true
+        }
+    }
+
+    private func exportAllSavedTestsJSON() {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+
+            let data = try encoder.encode(store.tests)
+            let filename = sanitizedFilename("all_lactate_tests_\(timestampString()).json")
+            let url = try writeExportFile(data: data, filename: filename)
+            shareItem = ShareItem(url: url)
+        } catch {
+            exportErrorMessage = "Could not export all saved tests as JSON. \(error.localizedDescription)"
+            showExportErrorAlert = true
+        }
+    }
+
+    private func exportSingleTestCSV(_ test: LactateTest) {
+        do {
+            let csv = csvString(for: test)
+            guard let data = csv.data(using: .utf8) else {
+                throw ExportError.encodingFailed
+            }
+
+            let filename = sanitizedFilename("\(test.athleteName)_\(isoDateString(test.date))_lactate_test.csv")
+            let url = try writeExportFile(data: data, filename: filename)
+            shareItem = ShareItem(url: url)
+        } catch {
+            exportErrorMessage = "Could not export this test as CSV. \(error.localizedDescription)"
+            showExportErrorAlert = true
+        }
+    }
+
+    private func exportAllSavedTestsCSV() {
+        do {
+            let csv = csvString(for: store.tests)
+            guard let data = csv.data(using: .utf8) else {
+                throw ExportError.encodingFailed
+            }
+
+            let filename = sanitizedFilename("all_lactate_tests_\(timestampString()).csv")
+            let url = try writeExportFile(data: data, filename: filename)
+            shareItem = ShareItem(url: url)
+        } catch {
+            exportErrorMessage = "Could not export all saved tests as CSV. \(error.localizedDescription)"
+            showExportErrorAlert = true
+        }
+    }
+
+    private func csvString(for test: LactateTest) -> String {
+        csvString(for: [test])
+    }
+
+    private func csvString(for tests: [LactateTest]) -> String {
+        var rows: [String] = []
+        rows.append(csvHeaderRow())
+
+        for test in tests {
+            for step in test.steps.sorted(by: { $0.stepIndex < $1.stepIndex }) {
+                rows.append(csvRow(for: test, step: step))
+            }
+        }
+
+        return rows.joined(separator: "\n")
+    }
+
+    private func csvHeaderRow() -> String {
+        [
+            "athlete_name",
+            "date",
+            "sport",
+            "step_index",
+            "lactate_mmol_l",
+            "avg_heart_rate_bpm",
+            "running_pace_seconds_per_km",
+            "running_pace_min_per_km",
+            "running_pace_min_per_mile",
+            "cycling_speed_kmh",
+            "cycling_speed_mph",
+            "power_watts"
+        ]
+        .joined(separator: ",")
+    }
+
+    private func csvRow(for test: LactateTest, step: LactateStep) -> String {
+        let paceMetric: String
+        let paceImperial: String
+
+        if let secondsPerKm = step.runningPaceSecondsPerKm {
+            paceMetric = PaceFormatter.string(fromSecondsPerKm: secondsPerKm, unit: .metric)
+            paceImperial = PaceFormatter.string(fromSecondsPerKm: secondsPerKm, unit: .imperial)
+        } else {
+            paceMetric = ""
+            paceImperial = ""
+        }
+
+        let speedMph: String
+        if let kmh = step.cyclingSpeedKmh {
+            speedMph = String(format: "%.2f", kmh / 1.60934)
+        } else {
+            speedMph = ""
+        }
+
+        let values: [String] = [
+            test.athleteName,
+            isoDateString(test.date),
+            test.sport.rawValue,
+            String(step.stepIndex),
+            optionalDoubleString(step.lactate, decimals: 2),
+            optionalIntString(step.avgHeartRate),
+            step.runningPaceSecondsPerKm.map(String.init) ?? "",
+            paceMetric,
+            paceImperial,
+            optionalDoubleString(step.cyclingSpeedKmh, decimals: 2),
+            speedMph,
+            optionalIntString(step.powerWatts)
+        ]
+
+        return values.map(csvEscape).joined(separator: ",")
+    }
+
+    private func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
+        guard let value else { return "" }
+        return String(format: "%.\(decimals)f", value)
+    }
+
+    private func optionalIntString(_ value: Int?) -> String {
+        guard let value else { return "" }
+        return String(value)
+    }
+
+    private func csvEscape(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
+    }
+
+    private func writeExportFile(data: Data, filename: String) throws -> URL {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent(filename)
+
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+
+        try data.write(to: fileURL, options: .atomic)
+        return fileURL
+    }
+
+    private func sanitizedFilename(_ filename: String) -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+        let components = filename.components(separatedBy: invalidCharacters)
+        return components.joined(separator: "_")
+    }
+
+    private func isoDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func timestampString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        return formatter.string(from: Date())
     }
 
     private func loadSampleTest1() {
@@ -2054,6 +2283,17 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum ExportError: LocalizedError {
+    case encodingFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .encodingFailed:
+            return "The export file could not be encoded."
+        }
+    }
+}
+
 struct GraphPoint: Identifiable {
     let id = UUID()
     let stepIndex: Int
@@ -2103,6 +2343,21 @@ struct FiveZoneThresholds {
     let z2Upper: Double
     let z3Upper: Double
     let z4Upper: Double
+}
+
+struct ShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
 }
 
 #Preview {
