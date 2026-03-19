@@ -6,8 +6,8 @@
 //
 
 import SwiftUI
-import Charts
 import UIKit
+import Charts
 
 struct ContentView: View {
     @ObservedObject var store: SwiftDataTestsStore
@@ -272,6 +272,252 @@ struct ContentView: View {
         runningPaceFiveZones(for: draft)
     }
 
+    // MARK: - CRUD / Form Actions
+
+
+    private func addStep() {
+        let nextIndex = (draft.steps.map { $0.stepIndex }.max() ?? 0) + 1
+        draft.steps.append(LactateStep.emptyStep(stepIndex: nextIndex))
+    }
+
+    private func removeLastStep() {
+        _ = draft.steps.popLast()
+        if draft.steps.isEmpty {
+            draft.steps = [LactateStep.emptyStep(stepIndex: 1)]
+        }
+        selectedGraphPoint = nil
+    }
+
+    private func saveCurrentTest() {
+        if let editingTest {
+            store.updateTest(editingTest, with: draft)
+        } else {
+            store.appendTest(draft.asLactateTest())
+        }
+
+        resetEntryFields()
+    }
+
+    private func loadTestIntoDraft(_ test: LactateTest) {
+        editingTest = test
+        draft = LactateTestDraft(
+            athleteName: test.athleteName,
+            sport: test.sport,
+            date: test.date,
+            steps: test.steps
+        )
+        graphXAxis = .power
+        selectedGraphPoint = nil
+    }
+
+    private func isLoaded(_ test: LactateTest) -> Bool {
+        editingTest?.id == test.id
+    }
+
+    private func isCompared(_ test: LactateTest) -> Bool {
+        comparedTestIDs.contains(test.id)
+    }
+
+    private func canAddMoreComparisons(for test: LactateTest) -> Bool {
+        if comparedTestIDs.contains(test.id) { return true }
+        return comparedTestIDs.count < 2
+    }
+
+    private func addComparedTest(_ test: LactateTest) {
+        guard !comparedTestIDs.contains(test.id) else { return }
+        guard comparedTestIDs.count < 2 else { return }
+        comparedTestIDs.append(test.id)
+        selectedGraphPoint = nil
+    }
+
+    private func removeComparedTest(_ test: LactateTest) {
+        comparedTestIDs.removeAll { $0 == test.id }
+        selectedGraphPoint = nil
+    }
+
+    private func resetEntryFields() {
+        draft.reset()
+        editingTest = nil
+        graphXAxis = .power
+        selectedGraphPoint = nil
+    }
+
+    private func resetForm() {
+        resetEntryFields()
+        comparedTestIDs = []
+    }
+
+    private func deleteSavedTests() {
+        store.clearAll()
+        comparedTestIDs = []
+        selectedGraphPoint = nil
+        editingTest = nil
+        testPendingDeletion = nil
+        showDeleteSingleTestAlert = false
+    }
+
+    private func deleteSingleSavedTest(_ test: LactateTest) {
+        if let editingTest, editingTest.id == test.id {
+            resetEntryFields()
+        }
+
+        comparedTestIDs.removeAll { $0 == test.id }
+        store.deleteTest(id: test.id)
+
+        if let selectedGraphPoint, selectedGraphPoint.seriesLabel == testLabel(for: test) {
+            self.selectedGraphPoint = nil
+        }
+
+        testPendingDeletion = nil
+        showDeleteSingleTestAlert = false
+    }
+
+    // MARK: - Sample Tests
+
+    private func loadSampleTest1() {
+        loadCyclingSample(
+            athleteName: "Sample Test 1",
+            dateString: "04-29-23",
+            lactates: [1.7, 1.3, 1.9, 2.4, 3.4, 7.1],
+            heartRates: [114, 124, 127, 133, 138, 147],
+            powers: [127, 124, 142, 162, 183, 204]
+        )
+    }
+
+    private func loadSampleTest2() {
+        loadCyclingSample(
+            athleteName: "Sample Test 2",
+            dateString: "04-04-23",
+            lactates: [1.6, 1.7, 1.8, 3.2, 3.7, 7.2],
+            heartRates: [107, 112, 119, 129, 132, 141],
+            powers: [118, 122, 143, 163, 183, 209]
+        )
+    }
+
+    private func loadSampleTest3() {
+        loadCyclingSample(
+            athleteName: "Sample Test 3",
+            dateString: "02-25-23",
+            lactates: [1.9, 1.7, 2.6, 3.8, 5.6],
+            heartRates: [115, 119, 127, 136, 141],
+            powers: [125, 122, 143, 164, 183]
+        )
+    }
+
+    private func loadCyclingSample(
+        athleteName: String,
+        dateString: String,
+        lactates: [Double],
+        heartRates: [Int],
+        powers: [Int]
+    ) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd-yy"
+
+        let count = min(lactates.count, heartRates.count, powers.count)
+        var loadedSteps: [LactateStep] = []
+
+        for index in 0..<count {
+            loadedSteps.append(
+                LactateStep(
+                    stepIndex: index + 1,
+                    lactate: lactates[index],
+                    avgHeartRate: heartRates[index],
+                    runningPaceSecondsPerKm: nil,
+                    cyclingSpeedKmh: nil,
+                    powerWatts: powers[index]
+                )
+            )
+        }
+
+        draft = LactateTestDraft(
+            athleteName: athleteName,
+            sport: .cycling,
+            date: formatter.date(from: dateString) ?? Date(),
+            steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
+        )
+
+        editingTest = nil
+        graphXAxis = .power
+        selectedGraphPoint = nil
+    }
+
+    // MARK: - File Helpers
+
+    private func writeExportFile(data: Data, filename: String) throws -> URL {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent(filename)
+
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+
+        try data.write(to: fileURL, options: .atomic)
+        return fileURL
+    }
+
+    private func sanitizedFilename(_ filename: String) -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+        let components = filename.components(separatedBy: invalidCharacters)
+        return components.joined(separator: "_")
+    }
+
+    private func isoDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func timestampString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        return formatter.string(from: Date())
+    }
+
+    private func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
+        guard let value else { return "" }
+        return String(format: "%.\(decimals)f", value)
+    }
+
+    private func optionalIntString(_ value: Int?) -> String {
+        guard let value else { return "" }
+        return String(value)
+    }
+
+    private func csvEscape(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
+    }
+
+    private func stepTableHeader(for sport: Sport) -> String {
+        switch sport {
+        case .running:
+            return "Step | Lactate | HR | Pace | Power"
+        case .cycling:
+            return "Step | Lactate | HR | Speed | Power"
+        }
+    }
+
+    private func stepTableRow(for sport: Sport, step: LactateStep) -> String {
+        let lactate = step.lactate.map { String(format: "%.2f mmol/L", $0) } ?? "-"
+        let hr = step.avgHeartRate.map { "\($0) bpm" } ?? "-"
+        let power = step.powerWatts.map { "\($0) W" } ?? "-"
+
+        switch sport {
+        case .running:
+            let pace = step.runningPaceSecondsPerKm.map {
+                PaceFormatter.string(fromSecondsPerKm: $0, unit: unitPreference)
+            } ?? "-"
+            return "\(step.stepIndex) | \(lactate) | \(hr) | \(pace) | \(power)"
+
+        case .cycling:
+            let speed = step.cyclingSpeedKmh.map {
+                SpeedFormatter.string(fromKmh: $0, unit: unitPreference)
+            } ?? "-"
+            return "\(step.stepIndex) | \(lactate) | \(hr) | \(speed) | \(power)"
+        }
+    }
+
     // MARK: - Sections
 
     private var unitsPicker: some View {
@@ -298,7 +544,7 @@ struct ContentView: View {
                             .background(Color.orange.opacity(0.25))
                             .cornerRadius(6)
 
-                        Text("Viewing loaded saved test — \(editingTest.athleteName)")
+                        Text("Viewing loaded saved test - \(editingTest.athleteName)")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                     }
@@ -631,7 +877,7 @@ struct ContentView: View {
                     z2: "Z2 Endurance: \(formatPower(powerZones.z1Upper)) to \(formatPower(powerZones.z2Upper))",
                     z3: "Z3 Tempo: \(formatPower(powerZones.z2Upper)) to \(formatPower(powerZones.z3Upper))",
                     z4: "Z4 Threshold: \(formatPower(powerZones.z3Upper)) to \(formatPower(powerZones.z4Upper))",
-                    z5: "Z5 VO₂max: > \(formatPower(powerZones.z4Upper))"
+                    z5: "Z5 VO2max: > \(formatPower(powerZones.z4Upper))"
                 )
             }
 
@@ -642,7 +888,7 @@ struct ContentView: View {
                     z2: "Z2 Endurance: \(formatHeartRate(hrZones.z1Upper)) to \(formatHeartRate(hrZones.z2Upper))",
                     z3: "Z3 Tempo: \(formatHeartRate(hrZones.z2Upper)) to \(formatHeartRate(hrZones.z3Upper))",
                     z4: "Z4 Threshold: \(formatHeartRate(hrZones.z3Upper)) to \(formatHeartRate(hrZones.z4Upper))",
-                    z5: "Z5 VO₂max: > \(formatHeartRate(hrZones.z4Upper))"
+                    z5: "Z5 VO2max: > \(formatHeartRate(hrZones.z4Upper))"
                 )
             }
 
@@ -653,7 +899,7 @@ struct ContentView: View {
                     z2: "Z2 Endurance: \(formatSpeed(speedZones.z1Upper)) to \(formatSpeed(speedZones.z2Upper))",
                     z3: "Z3 Tempo: \(formatSpeed(speedZones.z2Upper)) to \(formatSpeed(speedZones.z3Upper))",
                     z4: "Z4 Threshold: \(formatSpeed(speedZones.z3Upper)) to \(formatSpeed(speedZones.z4Upper))",
-                    z5: "Z5 VO₂max: > \(formatSpeed(speedZones.z4Upper))"
+                    z5: "Z5 VO2max: > \(formatSpeed(speedZones.z4Upper))"
                 )
             }
 
@@ -664,7 +910,7 @@ struct ContentView: View {
                     z2: "Z2 Endurance: \(formatPace(paceZones.z1Upper)) to \(formatPace(paceZones.z2Upper))",
                     z3: "Z3 Tempo: \(formatPace(paceZones.z2Upper)) to \(formatPace(paceZones.z3Upper))",
                     z4: "Z4 Threshold: \(formatPace(paceZones.z3Upper)) to \(formatPace(paceZones.z4Upper))",
-                    z5: "Z5 VO₂max: faster than \(formatPace(paceZones.z4Upper))"
+                    z5: "Z5 VO2max: faster than \(formatPace(paceZones.z4Upper))"
                 )
             }
 
@@ -927,175 +1173,6 @@ struct ContentView: View {
                 }
             }
         }
-    }
-
-    // MARK: - CRUD / Form Actions
-
-    private func addStep() {
-        let nextIndex = (draft.steps.map { $0.stepIndex }.max() ?? 0) + 1
-        draft.steps.append(LactateStep.emptyStep(stepIndex: nextIndex))
-    }
-
-    private func removeLastStep() {
-        _ = draft.steps.popLast()
-        if draft.steps.isEmpty {
-            draft.steps = [LactateStep.emptyStep(stepIndex: 1)]
-        }
-        selectedGraphPoint = nil
-    }
-
-    private func saveCurrentTest() {
-        if let editingTest {
-            store.updateTest(editingTest, with: draft)
-        } else {
-            store.appendTest(draft.asLactateTest())
-        }
-
-        resetEntryFields()
-    }
-
-    private func loadTestIntoDraft(_ test: LactateTest) {
-        editingTest = test
-        draft = LactateTestDraft(
-            athleteName: test.athleteName,
-            sport: test.sport,
-            date: test.date,
-            steps: test.steps
-        )
-        graphXAxis = .power
-        selectedGraphPoint = nil
-    }
-
-    private func isLoaded(_ test: LactateTest) -> Bool {
-        editingTest?.id == test.id
-    }
-
-    private func isCompared(_ test: LactateTest) -> Bool {
-        comparedTestIDs.contains(test.id)
-    }
-
-    private func canAddMoreComparisons(for test: LactateTest) -> Bool {
-        if comparedTestIDs.contains(test.id) { return true }
-        return comparedTestIDs.count < 2
-    }
-
-    private func addComparedTest(_ test: LactateTest) {
-        guard !comparedTestIDs.contains(test.id) else { return }
-        guard comparedTestIDs.count < 2 else { return }
-        comparedTestIDs.append(test.id)
-        selectedGraphPoint = nil
-    }
-
-    private func removeComparedTest(_ test: LactateTest) {
-        comparedTestIDs.removeAll { $0 == test.id }
-        selectedGraphPoint = nil
-    }
-
-    private func resetEntryFields() {
-        draft.reset()
-        editingTest = nil
-        graphXAxis = .power
-        selectedGraphPoint = nil
-    }
-
-    private func resetForm() {
-        resetEntryFields()
-        comparedTestIDs = []
-    }
-
-    private func deleteSavedTests() {
-        store.clearAll()
-        comparedTestIDs = []
-        selectedGraphPoint = nil
-        editingTest = nil
-        testPendingDeletion = nil
-        showDeleteSingleTestAlert = false
-    }
-
-    private func deleteSingleSavedTest(_ test: LactateTest) {
-        if let editingTest, editingTest.id == test.id {
-            resetEntryFields()
-        }
-
-        comparedTestIDs.removeAll { $0 == test.id }
-        store.deleteTest(id: test.id)
-
-        if let selectedGraphPoint, selectedGraphPoint.seriesLabel == testLabel(for: test) {
-            self.selectedGraphPoint = nil
-        }
-
-        testPendingDeletion = nil
-        showDeleteSingleTestAlert = false
-    }
-
-    // MARK: - Sample Tests
-
-    private func loadSampleTest1() {
-        loadCyclingSample(
-            athleteName: "Sample Test 1",
-            dateString: "04-29-23",
-            lactates: [1.7, 1.3, 1.9, 2.4, 3.4, 7.1],
-            heartRates: [114, 124, 127, 133, 138, 147],
-            powers: [127, 124, 142, 162, 183, 204]
-        )
-    }
-
-    private func loadSampleTest2() {
-        loadCyclingSample(
-            athleteName: "Sample Test 2",
-            dateString: "04-04-23",
-            lactates: [1.6, 1.7, 1.8, 3.2, 3.7, 7.2],
-            heartRates: [107, 112, 119, 129, 132, 141],
-            powers: [118, 122, 143, 163, 183, 209]
-        )
-    }
-
-    private func loadSampleTest3() {
-        loadCyclingSample(
-            athleteName: "Sample Test 3",
-            dateString: "02-25-23",
-            lactates: [1.9, 1.7, 2.6, 3.8, 5.6],
-            heartRates: [115, 119, 127, 136, 141],
-            powers: [125, 122, 143, 164, 183]
-        )
-    }
-
-    private func loadCyclingSample(
-        athleteName: String,
-        dateString: String,
-        lactates: [Double],
-        heartRates: [Int],
-        powers: [Int]
-    ) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd-yy"
-
-        let count = min(lactates.count, heartRates.count, powers.count)
-        var loadedSteps: [LactateStep] = []
-
-        for index in 0..<count {
-            loadedSteps.append(
-                LactateStep(
-                    stepIndex: index + 1,
-                    lactate: lactates[index],
-                    avgHeartRate: heartRates[index],
-                    runningPaceSecondsPerKm: nil,
-                    cyclingSpeedKmh: nil,
-                    powerWatts: powers[index]
-                )
-            )
-        }
-
-        draft = LactateTestDraft(
-            athleteName: athleteName,
-            sport: .cycling,
-            date: formatter.date(from: dateString) ?? Date(),
-            steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
-        )
-
-        editingTest = nil
-        graphXAxis = .power
-        selectedGraphPoint = nil
     }
 
     // MARK: - Export JSON
@@ -1412,7 +1489,7 @@ struct ContentView: View {
                 return interpolatedThresholdPoint(targetLactate: dmaxLactate, points: points)
             }(),
             lt2Point: interpolatedThresholdPoint(targetLactate: 4.0, points: points),
-            title: "\(test.athleteName) — Lactate Curve"
+            title: "\(test.athleteName) - Lactate Curve"
         )
         .frame(width: 700, height: 380)
         .background(Color.white)
@@ -1548,7 +1625,7 @@ struct ContentView: View {
             lines.append("  Z2 Endurance: \(formatPower(powerZones.z1Upper)) to \(formatPower(powerZones.z2Upper))")
             lines.append("  Z3 Tempo: \(formatPower(powerZones.z2Upper)) to \(formatPower(powerZones.z3Upper))")
             lines.append("  Z4 Threshold: \(formatPower(powerZones.z3Upper)) to \(formatPower(powerZones.z4Upper))")
-            lines.append("  Z5 VO₂max: > \(formatPower(powerZones.z4Upper))")
+            lines.append("  Z5 VO2max: > \(formatPower(powerZones.z4Upper))")
         }
 
         if let hrZones = heartRateFiveZones(for: test) {
@@ -1557,7 +1634,7 @@ struct ContentView: View {
             lines.append("  Z2 Endurance: \(formatHeartRate(hrZones.z1Upper)) to \(formatHeartRate(hrZones.z2Upper))")
             lines.append("  Z3 Tempo: \(formatHeartRate(hrZones.z2Upper)) to \(formatHeartRate(hrZones.z3Upper))")
             lines.append("  Z4 Threshold: \(formatHeartRate(hrZones.z3Upper)) to \(formatHeartRate(hrZones.z4Upper))")
-            lines.append("  Z5 VO₂max: > \(formatHeartRate(hrZones.z4Upper))")
+            lines.append("  Z5 VO2max: > \(formatHeartRate(hrZones.z4Upper))")
         }
 
         if test.sport == .cycling, let speedZones = cyclingSpeedFiveZones(for: test) {
@@ -1566,7 +1643,7 @@ struct ContentView: View {
             lines.append("  Z2 Endurance: \(formatSpeed(speedZones.z1Upper)) to \(formatSpeed(speedZones.z2Upper))")
             lines.append("  Z3 Tempo: \(formatSpeed(speedZones.z2Upper)) to \(formatSpeed(speedZones.z3Upper))")
             lines.append("  Z4 Threshold: \(formatSpeed(speedZones.z3Upper)) to \(formatSpeed(speedZones.z4Upper))")
-            lines.append("  Z5 VO₂max: > \(formatSpeed(speedZones.z4Upper))")
+            lines.append("  Z5 VO2max: > \(formatSpeed(speedZones.z4Upper))")
         }
 
         if test.sport == .running, let paceZones = runningPaceFiveZones(for: test) {
@@ -1575,7 +1652,7 @@ struct ContentView: View {
             lines.append("  Z2 Endurance: \(formatPace(paceZones.z1Upper)) to \(formatPace(paceZones.z2Upper))")
             lines.append("  Z3 Tempo: \(formatPace(paceZones.z2Upper)) to \(formatPace(paceZones.z3Upper))")
             lines.append("  Z4 Threshold: \(formatPace(paceZones.z3Upper)) to \(formatPace(paceZones.z4Upper))")
-            lines.append("  Z5 VO₂max: faster than \(formatPace(paceZones.z4Upper))")
+            lines.append("  Z5 VO2max: faster than \(formatPace(paceZones.z4Upper))")
         }
 
         if lines.isEmpty {
@@ -1634,7 +1711,6 @@ struct ContentView: View {
         )
     }
 
-    // MARK: - Analysis Helpers
 
     private func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
         let raw: [GraphPoint] = testSteps.compactMap { step in
@@ -1998,6 +2074,7 @@ struct ContentView: View {
         )
     }
 
+
     // MARK: - Formatting
 
     private func formatXAxisValue(_ value: Double) -> String {
@@ -2084,754 +2161,8 @@ struct ContentView: View {
         "\(test.athleteName) (\(shortDateString(test.date)))"
     }
 
-    // MARK: - File Helpers
-
-    private func writeExportFile(data: Data, filename: String) throws -> URL {
-        let tempDirectory = FileManager.default.temporaryDirectory
-        let fileURL = tempDirectory.appendingPathComponent(filename)
-
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            try? FileManager.default.removeItem(at: fileURL)
-        }
-
-        try data.write(to: fileURL, options: .atomic)
-        return fileURL
-    }
-
-    private func sanitizedFilename(_ filename: String) -> String {
-        let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
-        let components = filename.components(separatedBy: invalidCharacters)
-        return components.joined(separator: "_")
-    }
-
-    private func isoDateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
-    }
-
-    private func timestampString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        return formatter.string(from: Date())
-    }
-
-    private func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
-        guard let value else { return "" }
-        return String(format: "%.\(decimals)f", value)
-    }
-
-    private func optionalIntString(_ value: Int?) -> String {
-        guard let value else { return "" }
-        return String(value)
-    }
-
-    private func csvEscape(_ value: String) -> String {
-        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-        return "\"\(escaped)\""
-    }
-
-    private func stepTableHeader(for sport: Sport) -> String {
-        switch sport {
-        case .running:
-            return "Step | Lactate | HR | Pace | Power"
-        case .cycling:
-            return "Step | Lactate | HR | Speed | Power"
-        }
-    }
-
-    private func stepTableRow(for sport: Sport, step: LactateStep) -> String {
-        let lactate = step.lactate.map { String(format: "%.2f mmol/L", $0) } ?? "-"
-        let hr = step.avgHeartRate.map { "\($0) bpm" } ?? "-"
-        let power = step.powerWatts.map { "\($0) W" } ?? "-"
-
-        switch sport {
-        case .running:
-            let pace = step.runningPaceSecondsPerKm.map {
-                PaceFormatter.string(fromSecondsPerKm: $0, unit: unitPreference)
-            } ?? "-"
-            return "\(step.stepIndex) | \(lactate) | \(hr) | \(pace) | \(power)"
-
-        case .cycling:
-            let speed = step.cyclingSpeedKmh.map {
-                SpeedFormatter.string(fromKmh: $0, unit: unitPreference)
-            } ?? "-"
-            return "\(step.stepIndex) | \(lactate) | \(hr) | \(speed) | \(power)"
-        }
-    }
 }
 
-struct LactateChartView: View {
-    let graphXAxis: GraphXAxis
-    let displaySeries: [GraphSeries]
-    let yAxisDomain: ClosedRange<Double>
-    let xAxisDomain: ClosedRange<Double>
-    let lt1Point: ThresholdPoint?
-    let dmaxPoint: ThresholdPoint?
-    let lt2Point: ThresholdPoint?
-
-    @Binding var selectedPoint: GraphPoint?
-
-    let nearestPointProvider: (Double) -> GraphPoint?
-    let formatXAxisValue: (Double) -> String
-
-    var body: some View {
-        Chart {
-            RuleMark(y: .value("LT1", 2.0))
-                .foregroundStyle(.green)
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-
-            RuleMark(y: .value("LT2", 4.0))
-                .foregroundStyle(.red)
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-
-            ForEach(displaySeries) { series in
-                ForEach(series.points) { point in
-                    LineMark(
-                        x: .value(graphXAxis.title, point.x),
-                        y: .value("Lactate", point.lactate),
-                        series: .value("Series", series.id)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(series.color)
-
-                    PointMark(
-                        x: .value(graphXAxis.title, point.x),
-                        y: .value("Lactate", point.lactate)
-                    )
-                    .foregroundStyle(series.color)
-                    .symbolSize(50)
-                }
-            }
-
-            if let lt1Point {
-                RuleMark(x: .value("LT1 X", lt1Point.x))
-                    .foregroundStyle(.green)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            }
-
-            if let dmaxPoint {
-                RuleMark(x: .value("Dmax X", dmaxPoint.x))
-                    .foregroundStyle(.purple)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            }
-
-            if let lt2Point {
-                RuleMark(x: .value("LT2 X", lt2Point.x))
-                    .foregroundStyle(.red)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            }
-
-            if let selected = selectedPoint {
-                RuleMark(x: .value("Selected X", selected.x))
-                    .foregroundStyle(.secondary)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-
-                PointMark(
-                    x: .value("Selected Point X", selected.x),
-                    y: .value("Selected Point Y", selected.lactate)
-                )
-                .foregroundStyle(selected.seriesColor)
-                .symbolSize(130)
-                .annotation(position: .top, alignment: .leading) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(selected.seriesLabel)
-                            .font(.caption)
-                            .bold()
-                        Text("Step \(selected.stepIndex)")
-                            .font(.caption2)
-                        Text("\(graphXAxis.title): \(formatXAxisValue(selected.x))")
-                            .font(.caption2)
-                        Text(String(format: "Lactate: %.2f", selected.lactate))
-                            .font(.caption2)
-                    }
-                    .padding(6)
-                    .background(Color(.systemBackground).opacity(0.95))
-                    .cornerRadius(8)
-                }
-            }
-        }
-        .chartXAxisLabel(graphXAxis.title)
-        .chartYAxisLabel("Lactate (mmol/L)")
-        .chartYScale(domain: yAxisDomain)
-        .chartXScale(domain: xAxisDomain)
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                Rectangle()
-                    .fill(Color.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                guard let plotFrameAnchor = proxy.plotFrame else {
-                                    return
-                                }
-
-                                let plotFrame = geometry[plotFrameAnchor]
-                                let relativeX = value.location.x - plotFrame.origin.x
-
-                                guard relativeX >= 0, relativeX <= plotFrame.size.width else {
-                                    return
-                                }
-
-                                if let xValue: Double = proxy.value(atX: relativeX) {
-                                    selectedPoint = nearestPointProvider(xValue)
-                                }
-                            }
-                    )
-            }
-        }
-    }
-}
-
-struct FullScreenLactateChartView: View {
-    let title: String
-    let graphXAxis: GraphXAxis
-    let displaySeries: [GraphSeries]
-    let yAxisDomain: ClosedRange<Double>
-    let baseXAxisDomain: ClosedRange<Double>
-    let lt1Point: ThresholdPoint?
-    let dmaxPoint: ThresholdPoint?
-    let lt2Point: ThresholdPoint?
-
-    @Binding var selectedPoint: GraphPoint?
-
-    let nearestPointProvider: (Double) -> GraphPoint?
-    let formatXAxisValue: (Double) -> String
-
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var currentXAxisDomain: ClosedRange<Double> = 0.0...1.0
-    @State private var pinchStartDomain: ClosedRange<Double> = 0.0...1.0
-
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    Button(action: zoomIn) {
-                        Label("Zoom In", systemImage: "plus.magnifyingglass")
-                    }
-
-                    Button(action: zoomOut) {
-                        Label("Zoom Out", systemImage: "minus.magnifyingglass")
-                    }
-
-                    Button(action: resetZoom) {
-                        Label("Reset", systemImage: "arrow.counterclockwise")
-                    }
-
-                    Spacer()
-                }
-                .font(.caption)
-
-                LactateChartView(
-                    graphXAxis: graphXAxis,
-                    displaySeries: displaySeries,
-                    yAxisDomain: yAxisDomain,
-                    xAxisDomain: currentXAxisDomain,
-                    lt1Point: lt1Point,
-                    dmaxPoint: dmaxPoint,
-                    lt2Point: lt2Point,
-                    selectedPoint: $selectedPoint,
-                    nearestPointProvider: nearestPointProvider,
-                    formatXAxisValue: formatXAxisValue
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            applyMagnification(value)
-                        }
-                )
-            }
-            .padding()
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-            .onAppear {
-                currentXAxisDomain = baseXAxisDomain
-                pinchStartDomain = baseXAxisDomain
-            }
-        }
-    }
-
-    private func zoomIn() {
-        currentXAxisDomain = scaledDomain(from: currentXAxisDomain, scale: 0.8)
-        pinchStartDomain = currentXAxisDomain
-    }
-
-    private func zoomOut() {
-        currentXAxisDomain = scaledDomain(from: currentXAxisDomain, scale: 1.25)
-        pinchStartDomain = currentXAxisDomain
-    }
-
-    private func resetZoom() {
-        currentXAxisDomain = baseXAxisDomain
-        pinchStartDomain = baseXAxisDomain
-    }
-
-    private func applyMagnification(_ value: CGFloat) {
-        guard value > 0 else { return }
-        let scale = 1.0 / Double(value)
-        currentXAxisDomain = scaledDomain(from: pinchStartDomain, scale: scale)
-    }
-
-    private func scaledDomain(from domain: ClosedRange<Double>, scale: Double) -> ClosedRange<Double> {
-        let baseMin = baseXAxisDomain.lowerBound
-        let baseMax = baseXAxisDomain.upperBound
-        let baseWidth = baseMax - baseMin
-
-        let currentMin = domain.lowerBound
-        let currentMax = domain.upperBound
-        let currentWidth = currentMax - currentMin
-
-        let center = (currentMin + currentMax) / 2.0
-        var newWidth = currentWidth * scale
-
-        let minimumWidth = max(baseWidth * 0.15, 1.0)
-        let maximumWidth = baseWidth
-
-        newWidth = max(minimumWidth, min(maximumWidth, newWidth))
-
-        var newMin = center - newWidth / 2.0
-        var newMax = center + newWidth / 2.0
-
-        if newMin < baseMin {
-            newMin = baseMin
-            newMax = newMin + newWidth
-        }
-
-        if newMax > baseMax {
-            newMax = baseMax
-            newMin = newMax - newWidth
-        }
-
-        if newMin < baseMin {
-            newMin = baseMin
-        }
-
-        if newMax > baseMax {
-            newMax = baseMax
-        }
-
-        return newMin...newMax
-    }
-}
-
-struct ExportLactateChartView: View {
-    let points: [GraphPoint]
-    let yAxisDomain: ClosedRange<Double>
-    let xAxisDomain: ClosedRange<Double>
-    let lt1Point: ThresholdPoint?
-    let dmaxPoint: ThresholdPoint?
-    let lt2Point: ThresholdPoint?
-    let title: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-
-            Chart {
-                RuleMark(y: .value("LT1", 2.0))
-                    .foregroundStyle(.green)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-
-                RuleMark(y: .value("LT2", 4.0))
-                    .foregroundStyle(.red)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-
-                ForEach(points) { point in
-                    LineMark(
-                        x: .value("Power", point.x),
-                        y: .value("Lactate", point.lactate)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(.blue)
-
-                    PointMark(
-                        x: .value("Power", point.x),
-                        y: .value("Lactate", point.lactate)
-                    )
-                    .foregroundStyle(.blue)
-                }
-
-                if let lt1Point {
-                    RuleMark(x: .value("LT1 X", lt1Point.x))
-                        .foregroundStyle(.green)
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                }
-
-                if let dmaxPoint {
-                    RuleMark(x: .value("Dmax X", dmaxPoint.x))
-                        .foregroundStyle(.purple)
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                }
-
-                if let lt2Point {
-                    RuleMark(x: .value("LT2 X", lt2Point.x))
-                        .foregroundStyle(.red)
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                }
-            }
-            .chartXAxisLabel("Power")
-            .chartYAxisLabel("Lactate (mmol/L)")
-            .chartYScale(domain: yAxisDomain)
-            .chartXScale(domain: xAxisDomain)
-        }
-        .padding()
-        .background(Color.white)
-    }
-}
-
-struct StepEditor: View {
-    @Binding var step: LactateStep
-    let sport: Sport
-    let unitPreference: UnitPreference
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Step \(step.stepIndex)")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                Spacer()
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                TextField("Lactate (mmol/L)", text: doubleStringBinding($step.lactate))
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                TextField("Avg HR", text: intStringBinding($step.avgHeartRate))
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                if sport == .running {
-                    PaceInput(
-                        secondsPerKm: $step.runningPaceSecondsPerKm,
-                        unitPreference: unitPreference
-                    )
-                } else {
-                    TextField(
-                        speedFieldTitle,
-                        text: speedStringBinding($step.cyclingSpeedKmh)
-                    )
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-
-                TextField("Power (W)", text: intStringBinding($step.powerWatts))
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.secondarySystemBackground))
-        )
-    }
-
-    private var speedFieldTitle: String {
-        switch unitPreference {
-        case .metric:
-            return "Speed (km/h)"
-        case .imperial:
-            return "Speed (mph)"
-        }
-    }
-
-    private func intStringBinding(_ value: Binding<Int?>) -> Binding<String> {
-        Binding<String>(
-            get: {
-                if let wrapped = value.wrappedValue {
-                    return String(wrapped)
-                }
-                return ""
-            },
-            set: { newValue in
-                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                value.wrappedValue = trimmed.isEmpty ? nil : Int(trimmed)
-            }
-        )
-    }
-
-    private func doubleStringBinding(_ value: Binding<Double?>) -> Binding<String> {
-        Binding<String>(
-            get: {
-                if let wrapped = value.wrappedValue {
-                    return String(wrapped)
-                }
-                return ""
-            },
-            set: { newValue in
-                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty {
-                    value.wrappedValue = nil
-                } else {
-                    value.wrappedValue = Double(trimmed.replacingOccurrences(of: ",", with: "."))
-                }
-            }
-        )
-    }
-
-    private func speedStringBinding(_ value: Binding<Double?>) -> Binding<String> {
-        Binding<String>(
-            get: {
-                guard let kmh = value.wrappedValue else { return "" }
-
-                switch unitPreference {
-                case .metric:
-                    return String(format: "%.1f", kmh)
-                case .imperial:
-                    let mph = kmh / 1.60934
-                    return String(format: "%.1f", mph)
-                }
-            },
-            set: { newValue in
-                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                guard !trimmed.isEmpty else {
-                    value.wrappedValue = nil
-                    return
-                }
-
-                guard let enteredValue = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else {
-                    value.wrappedValue = nil
-                    return
-                }
-
-                switch unitPreference {
-                case .metric:
-                    value.wrappedValue = enteredValue
-                case .imperial:
-                    value.wrappedValue = enteredValue * 1.60934
-                }
-            }
-        )
-    }
-}
-
-struct PaceInput: View {
-    @Binding var secondsPerKm: Int?
-    let unitPreference: UnitPreference
-
-    @State private var minutes: String = ""
-    @State private var seconds: String = ""
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text("Pace")
-
-            TextField("min", text: Binding(
-                get: { minutes },
-                set: { newValue in
-                    minutes = newValue
-                    updateBinding()
-                }
-            ))
-            .keyboardType(.numberPad)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .frame(width: 50)
-
-            Text(":")
-
-            TextField("sec", text: Binding(
-                get: { seconds },
-                set: { newValue in
-                    seconds = newValue
-                    updateBinding()
-                }
-            ))
-            .keyboardType(.numberPad)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .frame(width: 50)
-
-            Text(paceUnitLabel)
-        }
-        .onAppear(perform: syncFromBinding)
-        .onChange(of: unitPreference) {
-            syncFromBinding()
-        }
-    }
-
-    private var paceUnitLabel: String {
-        switch unitPreference {
-        case .metric:
-            return "min/km"
-        case .imperial:
-            return "min/mile"
-        }
-    }
-
-    private func syncFromBinding() {
-        guard let totalSecondsPerKm = secondsPerKm else {
-            minutes = ""
-            seconds = ""
-            return
-        }
-
-        let displayedTotalSeconds: Double
-        switch unitPreference {
-        case .metric:
-            displayedTotalSeconds = Double(totalSecondsPerKm)
-        case .imperial:
-            displayedTotalSeconds = Double(totalSecondsPerKm) * 1.60934
-        }
-
-        let rounded = Int(displayedTotalSeconds.rounded())
-        minutes = String(rounded / 60)
-        seconds = String(format: "%02d", rounded % 60)
-    }
-
-    private func updateBinding() {
-        let m = Int(minutes) ?? 0
-        let s = Int(seconds) ?? 0
-        let clampedS = max(0, min(59, s))
-        let displayedTotal = m * 60 + clampedS
-
-        guard displayedTotal > 0 else {
-            secondsPerKm = nil
-            return
-        }
-
-        let storedSecondsPerKm: Double
-        switch unitPreference {
-        case .metric:
-            storedSecondsPerKm = Double(displayedTotal)
-        case .imperial:
-            storedSecondsPerKm = Double(displayedTotal) / 1.60934
-        }
-
-        secondsPerKm = Int(storedSecondsPerKm.rounded())
-    }
-}
-
-enum GraphXAxis: String, CaseIterable, Identifiable {
-    case power
-    case heartRate
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .power:
-            return "Power"
-        case .heartRate:
-            return "Heart Rate"
-        }
-    }
-}
-
-enum AppearanceMode: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .system:
-            return "System"
-        case .light:
-            return "Light"
-        case .dark:
-            return "Dark"
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system:
-            return nil
-        case .light:
-            return .light
-        case .dark:
-            return .dark
-        }
-    }
-}
-
-enum ExportError: LocalizedError {
-    case encodingFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .encodingFailed:
-            return "The export file could not be encoded."
-        }
-    }
-}
-
-struct ExportAnalysisSummary {
-    let thresholdLines: [String]
-    let zoneLines: [String]
-}
-
-struct GraphPoint: Identifiable {
-    let id = UUID()
-    let stepIndex: Int
-    let x: Double
-    let lactate: Double
-    let heartRate: Int?
-    let power: Int?
-    let seriesLabel: String
-    let seriesColor: Color
-}
-
-struct GraphSeries: Identifiable {
-    let id: String
-    let label: String
-    let color: Color
-    let points: [GraphPoint]
-}
-
-struct ThresholdPoint {
-    let x: Double
-    let lactate: Double
-}
-
-struct WorkloadLactatePoint {
-    let workload: Double
-    let lactate: Double
-}
-
-struct MetricLactatePair {
-    let metric: Double
-    let lactate: Double
-}
-
-struct WorkloadThresholdResult {
-    let workload: Double
-    let lactate: Double
-}
-
-struct LinearRegressionResult {
-    let intercept: Double
-    let slope: Double
-    let sse: Double
-}
-
-struct FiveZoneThresholds {
-    let z1Upper: Double
-    let z2Upper: Double
-    let z3Upper: Double
-    let z4Upper: Double
-}
-
-struct ShareItem: Identifiable {
-    let id = UUID()
-    let url: URL
-}
 
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
@@ -2855,3 +2186,6 @@ extension DateFormatter {
 #Preview {
     ContentView(store: SwiftDataTestsStore())
 }
+
+
+

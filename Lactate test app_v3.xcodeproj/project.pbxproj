@@ -7,12 +7,39 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		243E6D102F6A3641005E7C66 /* Lactate test app_v3.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Lactate test app_v3.xcodeproj"; sourceTree = "<group>"; };
+		24EEB8632F6A360200E46DCE /* Lactate test app_v3.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Lactate test app_v3.xcodeproj"; sourceTree = SOURCE_ROOT; };
+		24EEB8662F6A361700E46DCE /* Lactate test app_v3.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "Lactate test app_v3.xcodeproj"; path = "Lactate test app_v3/Lactate test app_v3.xcodeproj"; sourceTree = SOURCE_ROOT; };
 		8359D4A52F6728C100883D87 /* Lactate test app_v3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Lactate test app_v3.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		241321952F6B2139002A0F62 /* Exceptions for "Lactate test app_v3" folder in "Lactate test app_v3" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"ContentView+Sections.swift",
+			);
+			target = 8359D4A42F6728C100883D87 /* Lactate test app_v3 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		241321962F6B2139002A0F62 /* Exceptions for "Lactate test app_v3" folder in "Copy Bundle Resources" phase from "Lactate test app_v3" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 8359D4A32F6728C100883D87 /* Resources */;
+			membershipExceptions = (
+				"ContentView+Sections.swift",
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8359D4A72F6728C100883D87 /* Lactate test app_v3 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				241321952F6B2139002A0F62 /* Exceptions for "Lactate test app_v3" folder in "Lactate test app_v3" target */,
+				241321962F6B2139002A0F62 /* Exceptions for "Lactate test app_v3" folder in "Copy Bundle Resources" phase from "Lactate test app_v3" target */,
+			);
 			path = "Lactate test app_v3";
 			sourceTree = "<group>";
 		};
@@ -29,9 +56,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		243E6D182F6A3641005E7C66 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		243E6D252F6A3642005E7C66 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		24EEB86B2F6A361700E46DCE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		8359D49C2F6728C100883D87 = {
 			isa = PBXGroup;
 			children = (
+				24EEB8632F6A360200E46DCE /* Lactate test app_v3.xcodeproj */,
 				8359D4A72F6728C100883D87 /* Lactate test app_v3 */,
 				8359D4A62F6728C100883D87 /* Products */,
 			);
@@ -97,6 +144,20 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8359D4A62F6728C100883D87 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 243E6D252F6A3642005E7C66 /* Products */;
+					ProjectRef = 24EEB8632F6A360200E46DCE /* Lactate test app_v3.xcodeproj */;
+				},
+				{
+					ProductGroup = 243E6D182F6A3641005E7C66 /* Products */;
+					ProjectRef = 243E6D102F6A3641005E7C66 /* Lactate test app_v3.xcodeproj */;
+				},
+				{
+					ProductGroup = 24EEB86B2F6A361700E46DCE /* Products */;
+					ProjectRef = 24EEB8662F6A361700E46DCE /* Lactate test app_v3.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				8359D4A42F6728C100883D87 /* Lactate test app_v3 */,
