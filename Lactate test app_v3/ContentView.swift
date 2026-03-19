@@ -12,23 +12,23 @@ import Charts
 struct ContentView: View {
     @ObservedObject var store: SwiftDataTestsStore
 
-    @State private var unitPreference: UnitPreference = .metric
-    @AppStorage("appearanceMode") private var appearanceModeRawValue: String = AppearanceMode.system.rawValue
+    @State var unitPreference: UnitPreference = .metric
+    @AppStorage("appearanceMode") var appearanceModeRawValue: String = AppearanceMode.system.rawValue
 
-    @State private var draft = LactateTestDraft()
+    @State var draft = LactateTestDraft()
 
-    @State private var graphXAxis: GraphXAxis = .power
-    @State private var selectedGraphPoint: GraphPoint? = nil
-    @State private var comparedTestIDs: [UUID] = []
-    @State private var showFullScreenChart: Bool = false
-    @State private var showDeleteSavedTestsAlert: Bool = false
-    @State private var editingTest: LactateTest? = nil
-    @State private var testPendingDeletion: LactateTest? = nil
-    @State private var showDeleteSingleTestAlert: Bool = false
+    @State var graphXAxis: GraphXAxis = .power
+    @State var selectedGraphPoint: GraphPoint? = nil
+    @State var comparedTestIDs: [UUID] = []
+    @State var showFullScreenChart: Bool = false
+    @State var showDeleteSavedTestsAlert: Bool = false
+    @State var editingTest: LactateTest? = nil
+    @State var testPendingDeletion: LactateTest? = nil
+    @State var showDeleteSingleTestAlert: Bool = false
 
-    @State private var shareItem: ShareItem? = nil
-    @State private var exportErrorMessage: String? = nil
-    @State private var showExportErrorAlert: Bool = false
+    @State var shareItem: ShareItem? = nil
+    @State var exportErrorMessage: String? = nil
+    @State var showExportErrorAlert: Bool = false
 
     init(store: SwiftDataTestsStore) {
         self.store = store
@@ -126,11 +126,11 @@ struct ContentView: View {
 
     // MARK: - Derived State
 
-    private var appearanceMode: AppearanceMode {
+    var appearanceMode: AppearanceMode {
         AppearanceMode(rawValue: appearanceModeRawValue) ?? .system
     }
 
-    private var currentSeriesLabel: String {
+    var currentSeriesLabel: String {
         let trimmed = draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             return "Current Input"
@@ -138,7 +138,7 @@ struct ContentView: View {
         return "\(trimmed) (\(shortDateString(draft.date)))"
     }
 
-    private var selectedComparisonTests: [LactateTest] {
+    var selectedComparisonTests: [LactateTest] {
         store.tests
             .filter { comparedTestIDs.contains($0.id) }
             .sorted { lhs, rhs in
@@ -146,11 +146,11 @@ struct ContentView: View {
             }
     }
 
-    private var currentGraphPoints: [GraphPoint] {
+    var currentGraphPoints: [GraphPoint] {
         graphPoints(for: draft.steps, seriesLabel: currentSeriesLabel, seriesColor: .blue)
     }
 
-    private var displaySeries: [GraphSeries] {
+    var displaySeries: [GraphSeries] {
         var series: [GraphSeries] = []
 
         if !currentGraphPoints.isEmpty {
@@ -186,24 +186,24 @@ struct ContentView: View {
         return series
     }
 
-    private var allDisplayedGraphPoints: [GraphPoint] {
+    var allDisplayedGraphPoints: [GraphPoint] {
         displaySeries.flatMap { $0.points }
     }
 
-    private var hasEnoughDataForAnalysis: Bool {
+    var hasEnoughDataForAnalysis: Bool {
         currentGraphPoints.count >= 2
     }
 
-    private var shouldShowComparisonSection: Bool {
+    var shouldShowComparisonSection: Bool {
         hasEnoughDataForAnalysis && !selectedComparisonTests.isEmpty
     }
 
-    private var yAxisDomain: ClosedRange<Double> {
+    var yAxisDomain: ClosedRange<Double> {
         let maxLactate = max(allDisplayedGraphPoints.map(\.lactate).max() ?? 6.0, 4.5)
         return 0.0...(maxLactate + 0.8)
     }
 
-    private var xAxisDomain: ClosedRange<Double> {
+    var xAxisDomain: ClosedRange<Double> {
         let allX = allDisplayedGraphPoints.map(\.x)
         guard let first = allX.min(), let last = allX.max() else {
             return 0.0...100.0
@@ -231,56 +231,56 @@ struct ContentView: View {
         return minX...maxX
     }
 
-    private var primaryWorkloadPoints: [WorkloadLactatePoint] {
+    var primaryWorkloadPoints: [WorkloadLactatePoint] {
         primaryWorkloadPoints(for: draft)
     }
 
-    private var primaryDmaxLactate: Double? {
+    var primaryDmaxLactate: Double? {
         dmaxPoint(from: primaryWorkloadPoints)?.lactate
     }
 
-    private var dmaxDisplayPoint: ThresholdPoint? {
+    var dmaxDisplayPoint: ThresholdPoint? {
         guard let dmaxLactate = primaryDmaxLactate else { return nil }
         return interpolatedThresholdPoint(targetLactate: dmaxLactate)
     }
 
-    private var modifiedDmaxResult: WorkloadThresholdResult? {
+    var modifiedDmaxResult: WorkloadThresholdResult? {
         modifiedDmaxPoint(from: primaryWorkloadPoints)
     }
 
-    private var logLogBreakpointResult: WorkloadThresholdResult? {
+    var logLogBreakpointResult: WorkloadThresholdResult? {
         logLogBreakpoint(from: primaryWorkloadPoints)
     }
 
-    private var preferredMiddleLactate: Double? {
+    var preferredMiddleLactate: Double? {
         modifiedDmaxResult?.lactate ?? primaryDmaxLactate
     }
 
-    private var heartRateFiveZones: FiveZoneThresholds? {
+    var heartRateFiveZones: FiveZoneThresholds? {
         heartRateFiveZones(for: draft)
     }
 
-    private var powerFiveZones: FiveZoneThresholds? {
+    var powerFiveZones: FiveZoneThresholds? {
         powerFiveZones(for: draft)
     }
 
-    private var cyclingSpeedFiveZones: FiveZoneThresholds? {
+    var cyclingSpeedFiveZones: FiveZoneThresholds? {
         cyclingSpeedFiveZones(for: draft)
     }
 
-    private var runningPaceFiveZones: FiveZoneThresholds? {
+    var runningPaceFiveZones: FiveZoneThresholds? {
         runningPaceFiveZones(for: draft)
     }
 
     // MARK: - CRUD / Form Actions
 
 
-    private func addStep() {
+    func addStep() {
         let nextIndex = (draft.steps.map { $0.stepIndex }.max() ?? 0) + 1
         draft.steps.append(LactateStep.emptyStep(stepIndex: nextIndex))
     }
 
-    private func removeLastStep() {
+    func removeLastStep() {
         _ = draft.steps.popLast()
         if draft.steps.isEmpty {
             draft.steps = [LactateStep.emptyStep(stepIndex: 1)]
@@ -288,7 +288,7 @@ struct ContentView: View {
         selectedGraphPoint = nil
     }
 
-    private func saveCurrentTest() {
+    func saveCurrentTest() {
         if let editingTest {
             store.updateTest(editingTest, with: draft)
         } else {
@@ -298,7 +298,7 @@ struct ContentView: View {
         resetEntryFields()
     }
 
-    private func loadTestIntoDraft(_ test: LactateTest) {
+    func loadTestIntoDraft(_ test: LactateTest) {
         editingTest = test
         draft = LactateTestDraft(
             athleteName: test.athleteName,
@@ -310,44 +310,44 @@ struct ContentView: View {
         selectedGraphPoint = nil
     }
 
-    private func isLoaded(_ test: LactateTest) -> Bool {
+    func isLoaded(_ test: LactateTest) -> Bool {
         editingTest?.id == test.id
     }
 
-    private func isCompared(_ test: LactateTest) -> Bool {
+    func isCompared(_ test: LactateTest) -> Bool {
         comparedTestIDs.contains(test.id)
     }
 
-    private func canAddMoreComparisons(for test: LactateTest) -> Bool {
+    func canAddMoreComparisons(for test: LactateTest) -> Bool {
         if comparedTestIDs.contains(test.id) { return true }
         return comparedTestIDs.count < 2
     }
 
-    private func addComparedTest(_ test: LactateTest) {
+    func addComparedTest(_ test: LactateTest) {
         guard !comparedTestIDs.contains(test.id) else { return }
         guard comparedTestIDs.count < 2 else { return }
         comparedTestIDs.append(test.id)
         selectedGraphPoint = nil
     }
 
-    private func removeComparedTest(_ test: LactateTest) {
+    func removeComparedTest(_ test: LactateTest) {
         comparedTestIDs.removeAll { $0 == test.id }
         selectedGraphPoint = nil
     }
 
-    private func resetEntryFields() {
+    func resetEntryFields() {
         draft.reset()
         editingTest = nil
         graphXAxis = .power
         selectedGraphPoint = nil
     }
 
-    private func resetForm() {
+    func resetForm() {
         resetEntryFields()
         comparedTestIDs = []
     }
 
-    private func deleteSavedTests() {
+    func deleteSavedTests() {
         store.clearAll()
         comparedTestIDs = []
         selectedGraphPoint = nil
@@ -356,7 +356,7 @@ struct ContentView: View {
         showDeleteSingleTestAlert = false
     }
 
-    private func deleteSingleSavedTest(_ test: LactateTest) {
+    func deleteSingleSavedTest(_ test: LactateTest) {
         if let editingTest, editingTest.id == test.id {
             resetEntryFields()
         }
@@ -374,7 +374,7 @@ struct ContentView: View {
 
     // MARK: - Sample Tests
 
-    private func loadSampleTest1() {
+    func loadSampleTest1() {
         loadCyclingSample(
             athleteName: "Sample Test 1",
             dateString: "04-29-23",
@@ -384,7 +384,7 @@ struct ContentView: View {
         )
     }
 
-    private func loadSampleTest2() {
+    func loadSampleTest2() {
         loadCyclingSample(
             athleteName: "Sample Test 2",
             dateString: "04-04-23",
@@ -394,7 +394,7 @@ struct ContentView: View {
         )
     }
 
-    private func loadSampleTest3() {
+    func loadSampleTest3() {
         loadCyclingSample(
             athleteName: "Sample Test 3",
             dateString: "02-25-23",
@@ -404,7 +404,7 @@ struct ContentView: View {
         )
     }
 
-    private func loadCyclingSample(
+    func loadCyclingSample(
         athleteName: String,
         dateString: String,
         lactates: [Double],
@@ -444,7 +444,7 @@ struct ContentView: View {
 
     // MARK: - File Helpers
 
-    private func writeExportFile(data: Data, filename: String) throws -> URL {
+    func writeExportFile(data: Data, filename: String) throws -> URL {
         let tempDirectory = FileManager.default.temporaryDirectory
         let fileURL = tempDirectory.appendingPathComponent(filename)
 
@@ -456,40 +456,40 @@ struct ContentView: View {
         return fileURL
     }
 
-    private func sanitizedFilename(_ filename: String) -> String {
+    func sanitizedFilename(_ filename: String) -> String {
         let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
         let components = filename.components(separatedBy: invalidCharacters)
         return components.joined(separator: "_")
     }
 
-    private func isoDateString(_ date: Date) -> String {
+    func isoDateString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
     }
 
-    private func timestampString() -> String {
+    func timestampString() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         return formatter.string(from: Date())
     }
 
-    private func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
+    func optionalDoubleString(_ value: Double?, decimals: Int) -> String {
         guard let value else { return "" }
         return String(format: "%.\(decimals)f", value)
     }
 
-    private func optionalIntString(_ value: Int?) -> String {
+    func optionalIntString(_ value: Int?) -> String {
         guard let value else { return "" }
         return String(value)
     }
 
-    private func csvEscape(_ value: String) -> String {
+    func csvEscape(_ value: String) -> String {
         let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
         return "\"\(escaped)\""
     }
 
-    private func stepTableHeader(for sport: Sport) -> String {
+    func stepTableHeader(for sport: Sport) -> String {
         switch sport {
         case .running:
             return "Step | Lactate | HR | Pace | Power"
@@ -498,7 +498,7 @@ struct ContentView: View {
         }
     }
 
-    private func stepTableRow(for sport: Sport, step: LactateStep) -> String {
+    func stepTableRow(for sport: Sport, step: LactateStep) -> String {
         let lactate = step.lactate.map { String(format: "%.2f mmol/L", $0) } ?? "-"
         let hr = step.avgHeartRate.map { "\($0) bpm" } ?? "-"
         let power = step.powerWatts.map { "\($0) W" } ?? "-"
@@ -518,666 +518,9 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Sections
-
-    private var unitsPicker: some View {
-        Picker("Units", selection: $unitPreference) {
-            ForEach(UnitPreference.allCases) { unit in
-                Text(unit == .metric ? "Metric" : "Imperial")
-                    .tag(unit)
-            }
-        }
-        .pickerStyle(SegmentedPickerStyle())
-        .frame(width: 220)
-    }
-
-    private var editingBannerSection: some View {
-        Group {
-            if let editingTest {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Text("Loaded")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.orange.opacity(0.25))
-                            .cornerRadius(6)
-
-                        Text("Viewing loaded saved test - \(editingTest.athleteName)")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                    }
-
-                    Text("You may review the values below or modify them and tap Update Test.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Button("Cancel Viewing/Editing") {
-                        resetEntryFields()
-                    }
-                    .font(.caption)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.15))
-                .cornerRadius(8)
-            }
-        }
-    }
-
-    private var formSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(editingTest == nil ? "Test Details" : "Loaded Saved Test")
-                    .font(.headline)
-
-                Spacer()
-
-                if let editingTest {
-                    Text(shortDateString(editingTest.date))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            if editingTest != nil {
-                Text("This saved test is loaded into the form. Tap Update Test to save any changes.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            TextField("Athlete name", text: $draft.athleteName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            Picker("Sport", selection: $draft.sport) {
-                ForEach(Sport.allCases) { s in
-                    Text(s.rawValue.capitalized).tag(s)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-
-            DatePicker("Date", selection: $draft.date, displayedComponents: .date)
-
-            Divider()
-
-            Text("Steps")
-                .font(.headline)
-
-            ForEach($draft.steps) { $step in
-                StepEditor(
-                    step: $step,
-                    sport: draft.sport,
-                    unitPreference: unitPreference
-                )
-            }
-
-            HStack {
-                Button(action: addStep) {
-                    HStack {
-                        Image(systemName: "plus")
-                        Text("Add Step")
-                    }
-                }
-
-                if !draft.steps.isEmpty {
-                    Button(action: removeLastStep) {
-                        HStack {
-                            Image(systemName: "minus")
-                            Text("Remove Last")
-                        }
-                    }
-                    .foregroundColor(.red)
-                }
-            }
-        }
-    }
-
-    private var tableSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Current Input Summary")
-                .font(.headline)
-
-            HStack {
-                Text("#").frame(width: 24, alignment: .leading)
-                Text("Lactate").frame(width: 90, alignment: .leading)
-                Text("HR").frame(width: 50, alignment: .leading)
-
-                if draft.sport == .running {
-                    Text("Pace").frame(width: 110, alignment: .leading)
-                } else {
-                    Text("Speed").frame(width: 100, alignment: .leading)
-                }
-
-                Text("Power").frame(width: 80, alignment: .leading)
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-            ForEach(draft.steps) { step in
-                HStack {
-                    Text("\(step.stepIndex)")
-                        .frame(width: 24, alignment: .leading)
-
-                    Text(step.lactate != nil ? String(format: "%.2f mmol/L", step.lactate!) : "-")
-                        .frame(width: 90, alignment: .leading)
-
-                    Text(step.avgHeartRate != nil ? "\(step.avgHeartRate!)" : "-")
-                        .frame(width: 50, alignment: .leading)
-
-                    if draft.sport == .running {
-                        Text(
-                            step.runningPaceSecondsPerKm != nil
-                            ? PaceFormatter.string(fromSecondsPerKm: step.runningPaceSecondsPerKm!, unit: unitPreference)
-                            : "-"
-                        )
-                        .frame(width: 110, alignment: .leading)
-                    } else {
-                        Text(
-                            step.cyclingSpeedKmh != nil
-                            ? SpeedFormatter.string(fromKmh: step.cyclingSpeedKmh!, unit: unitPreference)
-                            : "-"
-                        )
-                        .frame(width: 100, alignment: .leading)
-                    }
-
-                    Text(step.powerWatts != nil ? "\(step.powerWatts!) W" : "-")
-                        .frame(width: 80, alignment: .leading)
-                }
-                .font(.subheadline)
-            }
-        }
-    }
-
-    private var comparisonSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            Text("Comparison")
-                .font(.headline)
-
-            Text("The graph always includes the current input test. You may add up to 2 saved tests for comparison.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            VStack(alignment: .leading, spacing: 6) {
-                comparisonLegendRow(
-                    colorName: .blue,
-                    title: currentSeriesLabel,
-                    subtitle: "Current input"
-                )
-
-                if selectedComparisonTests.indices.contains(0) {
-                    let test = selectedComparisonTests[0]
-                    comparisonLegendRow(
-                        colorName: .orange,
-                        title: testLabel(for: test),
-                        subtitle: "Comparison 1"
-                    )
-                }
-
-                if selectedComparisonTests.indices.contains(1) {
-                    let test = selectedComparisonTests[1]
-                    comparisonLegendRow(
-                        colorName: .purple,
-                        title: testLabel(for: test),
-                        subtitle: "Comparison 2"
-                    )
-                }
-            }
-            .padding(8)
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(8)
-        }
-    }
-
-    private func comparisonLegendRow(colorName: Color, title: String, subtitle: String) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(colorName)
-                .frame(width: 10, height: 10)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    private var graphSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Divider()
-
-            HStack {
-                Text("Lactate Curve")
-                    .font(.headline)
-
-                Spacer()
-
-                Button(action: {
-                    showFullScreenChart = true
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        Text("Full Screen")
-                    }
-                    .font(.caption)
-                }
-                .disabled(currentGraphPoints.count < 2)
-            }
-
-            Picker("X Axis", selection: $graphXAxis) {
-                ForEach(GraphXAxis.allCases) { axis in
-                    Text(axis.title).tag(axis)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-
-            if currentGraphPoints.count < 2 {
-                Text("Enter at least two valid current-input points with lactate and the selected X-axis value to display the graph.")
-                    .foregroundColor(.secondary)
-            } else {
-                LactateChartView(
-                    graphXAxis: graphXAxis,
-                    displaySeries: displaySeries,
-                    yAxisDomain: yAxisDomain,
-                    xAxisDomain: xAxisDomain,
-                    lt1Point: interpolatedThresholdPoint(targetLactate: 2.0),
-                    dmaxPoint: dmaxDisplayPoint,
-                    lt2Point: interpolatedThresholdPoint(targetLactate: 4.0),
-                    selectedPoint: $selectedGraphPoint,
-                    nearestPointProvider: { xValue in
-                        nearestPoint(toX: xValue)
-                    },
-                    formatXAxisValue: { value in
-                        formatXAxisValue(value)
-                    }
-                )
-                .frame(height: 340)
-            }
-        }
-    }
-
-    private var thresholdsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            Text("Threshold Summary (Current Input)")
-                .font(.headline)
-
-            if currentGraphPoints.count < 2 {
-                Text("Not enough current-input data to estimate thresholds.")
-                    .foregroundColor(.secondary)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    if let lt1 = interpolatedThresholdPoint(targetLactate: 2.0) {
-                        Text("LT1 (2.0 mmol/L): \(formatXAxisValue(lt1.x))")
-                            .foregroundColor(.green)
-                    } else {
-                        Text("LT1 (2.0 mmol/L): not reached in the current data")
-                            .foregroundColor(.secondary)
-                    }
-
-                    if let dmaxLactate = primaryDmaxLactate,
-                       let dmax = interpolatedThresholdPoint(targetLactate: dmaxLactate) {
-                        Text("Dmax: \(formatXAxisValue(dmax.x)) at lactate \(String(format: "%.2f", dmaxLactate)) mmol/L")
-                            .foregroundColor(.purple)
-                    } else {
-                        Text("Dmax: not enough data")
-                            .foregroundColor(.secondary)
-                    }
-
-                    if let modified = modifiedDmaxResult {
-                        Text("Modified Dmax (Newell): \(formatPrimaryWorkload(modified.workload)) at lactate \(String(format: "%.2f", modified.lactate)) mmol/L")
-                            .foregroundColor(.indigo)
-                    } else {
-                        Text("Modified Dmax (Newell): not enough data")
-                            .foregroundColor(.secondary)
-                    }
-
-                    if let logLog = logLogBreakpointResult {
-                        Text("Log-log breakpoint: \(formatPrimaryWorkload(logLog.workload)) at lactate \(String(format: "%.2f", logLog.lactate)) mmol/L")
-                            .foregroundColor(.brown)
-                    } else {
-                        Text("Log-log breakpoint: not enough data")
-                            .foregroundColor(.secondary)
-                    }
-
-                    if let lt2 = interpolatedThresholdPoint(targetLactate: 4.0) {
-                        Text("LT2 (4.0 mmol/L): \(formatXAxisValue(lt2.x))")
-                            .foregroundColor(.red)
-                    } else {
-                        Text("LT2 (4.0 mmol/L): not reached in the current data")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .font(.caption)
-                .padding(8)
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(8)
-            }
-        }
-    }
-
-    private var trainingZonesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Divider()
-
-            Text("5-Zone Training Model (Current Input)")
-                .font(.headline)
-
-            if let powerZones = powerFiveZones {
-                fiveZoneCardIncreasing(
-                    title: "Power",
-                    z1: "Z1 Recovery: < \(formatPower(powerZones.z1Upper))",
-                    z2: "Z2 Endurance: \(formatPower(powerZones.z1Upper)) to \(formatPower(powerZones.z2Upper))",
-                    z3: "Z3 Tempo: \(formatPower(powerZones.z2Upper)) to \(formatPower(powerZones.z3Upper))",
-                    z4: "Z4 Threshold: \(formatPower(powerZones.z3Upper)) to \(formatPower(powerZones.z4Upper))",
-                    z5: "Z5 VO2max: > \(formatPower(powerZones.z4Upper))"
-                )
-            }
-
-            if let hrZones = heartRateFiveZones {
-                fiveZoneCardIncreasing(
-                    title: "Heart Rate",
-                    z1: "Z1 Recovery: < \(formatHeartRate(hrZones.z1Upper))",
-                    z2: "Z2 Endurance: \(formatHeartRate(hrZones.z1Upper)) to \(formatHeartRate(hrZones.z2Upper))",
-                    z3: "Z3 Tempo: \(formatHeartRate(hrZones.z2Upper)) to \(formatHeartRate(hrZones.z3Upper))",
-                    z4: "Z4 Threshold: \(formatHeartRate(hrZones.z3Upper)) to \(formatHeartRate(hrZones.z4Upper))",
-                    z5: "Z5 VO2max: > \(formatHeartRate(hrZones.z4Upper))"
-                )
-            }
-
-            if draft.sport == .cycling, let speedZones = cyclingSpeedFiveZones {
-                fiveZoneCardIncreasing(
-                    title: "Speed",
-                    z1: "Z1 Recovery: < \(formatSpeed(speedZones.z1Upper))",
-                    z2: "Z2 Endurance: \(formatSpeed(speedZones.z1Upper)) to \(formatSpeed(speedZones.z2Upper))",
-                    z3: "Z3 Tempo: \(formatSpeed(speedZones.z2Upper)) to \(formatSpeed(speedZones.z3Upper))",
-                    z4: "Z4 Threshold: \(formatSpeed(speedZones.z3Upper)) to \(formatSpeed(speedZones.z4Upper))",
-                    z5: "Z5 VO2max: > \(formatSpeed(speedZones.z4Upper))"
-                )
-            }
-
-            if draft.sport == .running, let paceZones = runningPaceFiveZones {
-                fiveZoneCardDecreasing(
-                    title: "Pace",
-                    z1: "Z1 Recovery: slower than \(formatPace(paceZones.z1Upper))",
-                    z2: "Z2 Endurance: \(formatPace(paceZones.z1Upper)) to \(formatPace(paceZones.z2Upper))",
-                    z3: "Z3 Tempo: \(formatPace(paceZones.z2Upper)) to \(formatPace(paceZones.z3Upper))",
-                    z4: "Z4 Threshold: \(formatPace(paceZones.z3Upper)) to \(formatPace(paceZones.z4Upper))",
-                    z5: "Z5 VO2max: faster than \(formatPace(paceZones.z4Upper))"
-                )
-            }
-
-            if powerFiveZones == nil &&
-                heartRateFiveZones == nil &&
-                runningPaceFiveZones == nil &&
-                cyclingSpeedFiveZones == nil {
-                Text("Not enough data to calculate 5-zone training ranges.")
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    private func fiveZoneCardIncreasing(
-        title: String,
-        z1: String,
-        z2: String,
-        z3: String,
-        z4: String,
-        z5: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline)
-                .bold()
-            Text(z1)
-            Text(z2)
-            Text(z3)
-            Text(z4)
-            Text(z5)
-        }
-        .font(.caption)
-        .padding(8)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(8)
-    }
-
-    private func fiveZoneCardDecreasing(
-        title: String,
-        z1: String,
-        z2: String,
-        z3: String,
-        z4: String,
-        z5: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline)
-                .bold()
-            Text(z1)
-            Text(z2)
-            Text(z3)
-            Text(z4)
-            Text(z5)
-        }
-        .font(.caption)
-        .padding(8)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(8)
-    }
-
-    private var saveSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            HStack(spacing: 12) {
-                Button(action: saveCurrentTest) {
-                    Text(editingTest == nil ? "Save Test" : "Update Test")
-                        .fontWeight(.semibold)
-                }
-                .disabled(
-                    draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                    draft.steps.isEmpty
-                )
-
-                Button(action: resetForm) {
-                    Text(editingTest == nil ? "Reset Form" : "Cancel Edit")
-                        .fontWeight(.semibold)
-                }
-
-                Button(action: {
-                    showDeleteSavedTestsAlert = true
-                }) {
-                    Text("Delete Saved Tests")
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.red)
-            }
-        }
-    }
-
-    private var savedTestsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            HStack {
-                Text("Saved Tests")
-                    .font(.headline)
-
-                Spacer()
-
-                if !store.tests.isEmpty {
-                    Menu {
-                        Button("Export All as JSON") {
-                            exportAllSavedTestsJSON()
-                        }
-                        Button("Export All as CSV") {
-                            exportAllSavedTestsCSV()
-                        }
-                        Button("Export All as PDF") {
-                            exportAllSavedTestsPDF()
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Export All")
-                        }
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                    }
-                }
-            }
-
-            if store.tests.isEmpty {
-                Text("No tests saved yet.")
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(store.tests) { test in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .center, spacing: 8) {
-                            Text(test.athleteName).bold()
-                            Text(test.sport.rawValue.capitalized)
-                            Text(shortDateString(test.date))
-
-                            if isLoaded(test) {
-                                Text("Loaded")
-                                    .font(.caption2)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.orange.opacity(0.25))
-                                    .cornerRadius(6)
-                            }
-                        }
-
-                        Text("Steps: \(test.steps.count)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 10) {
-                            Button(action: {
-                                loadTestIntoDraft(test)
-                            }) {
-                                Text("Load/Edit")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-
-                            Menu {
-                                Button("Export as JSON") {
-                                    exportSingleTestJSON(test)
-                                }
-                                Button("Export as CSV") {
-                                    exportSingleTestCSV(test)
-                                }
-                                Button("Export as PDF") {
-                                    exportSingleTestPDF(test)
-                                }
-                            } label: {
-                                Text("Export")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-
-                            Button(action: {
-                                testPendingDeletion = test
-                                showDeleteSingleTestAlert = true
-                            }) {
-                                Text("Delete")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.red)
-
-                            if isCompared(test) {
-                                Button(action: {
-                                    removeComparedTest(test)
-                                }) {
-                                    Text("Remove Comparison")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                }
-                                .foregroundColor(.red)
-                            } else {
-                                Button(action: {
-                                    addComparedTest(test)
-                                }) {
-                                    Text("Compare")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                }
-                                .disabled(!canAddMoreComparisons(for: test))
-                            }
-                        }
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .background(isLoaded(test) ? Color.orange.opacity(0.08) : Color.clear)
-                    .cornerRadius(8)
-                }
-            }
-        }
-    }
-
-    private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            Text("Appearance")
-                .font(.headline)
-
-            Picker("Appearance", selection: $appearanceModeRawValue) {
-                ForEach(AppearanceMode.allCases) { mode in
-                    Text(mode.title).tag(mode.rawValue)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-        }
-    }
-
-    private var sampleTestsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            Text("Sample Tests")
-                .font(.headline)
-
-            Text("Temporary utilities for loading example data.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            Button(action: loadSampleTest1) {
-                HStack {
-                    Image(systemName: "doc.badge.plus")
-                    Text("Load Test Sample 1")
-                }
-            }
-
-            Button(action: loadSampleTest2) {
-                HStack {
-                    Image(systemName: "doc.badge.plus")
-                    Text("Load Test Sample 2")
-                }
-            }
-
-            Button(action: loadSampleTest3) {
-                HStack {
-                    Image(systemName: "doc.badge.plus")
-                    Text("Load Test Sample 3")
-                }
-            }
-        }
-    }
-
     // MARK: - Export JSON
 
-    private func exportSingleTestJSON(_ test: LactateTest) {
+    func exportSingleTestJSON(_ test: LactateTest) {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -1193,7 +536,7 @@ struct ContentView: View {
         }
     }
 
-    private func exportAllSavedTestsJSON() {
+    func exportAllSavedTestsJSON() {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -1211,7 +554,7 @@ struct ContentView: View {
 
     // MARK: - Export CSV
 
-    private func exportSingleTestCSV(_ test: LactateTest) {
+    func exportSingleTestCSV(_ test: LactateTest) {
         do {
             let csv = csvString(for: test)
             guard let data = csv.data(using: .utf8) else {
@@ -1227,7 +570,7 @@ struct ContentView: View {
         }
     }
 
-    private func exportAllSavedTestsCSV() {
+    func exportAllSavedTestsCSV() {
         do {
             let csv = csvString(for: store.tests)
             guard let data = csv.data(using: .utf8) else {
@@ -1243,11 +586,11 @@ struct ContentView: View {
         }
     }
 
-    private func csvString(for test: LactateTest) -> String {
+    func csvString(for test: LactateTest) -> String {
         csvString(for: [test])
     }
 
-    private func csvString(for tests: [LactateTest]) -> String {
+    func csvString(for tests: [LactateTest]) -> String {
         var rows: [String] = []
         rows.append(csvHeaderRow())
 
@@ -1260,7 +603,7 @@ struct ContentView: View {
         return rows.joined(separator: "\n")
     }
 
-    private func csvHeaderRow() -> String {
+    func csvHeaderRow() -> String {
         [
             "athlete_name",
             "date",
@@ -1278,7 +621,7 @@ struct ContentView: View {
         .joined(separator: ",")
     }
 
-    private func csvRow(for test: LactateTest, step: LactateStep) -> String {
+    func csvRow(for test: LactateTest, step: LactateStep) -> String {
         let paceMetric: String
         let paceImperial: String
 
@@ -1318,7 +661,7 @@ struct ContentView: View {
     // MARK: - Export PDF
 
     @MainActor
-    private func exportSingleTestPDF(_ test: LactateTest) {
+    func exportSingleTestPDF(_ test: LactateTest) {
         do {
             let data = try pdfData(for: [test])
             let filename = sanitizedFilename("\(test.athleteName)_\(isoDateString(test.date))_lactate_report.pdf")
@@ -1331,7 +674,7 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func exportAllSavedTestsPDF() {
+    func exportAllSavedTestsPDF() {
         do {
             let data = try pdfData(for: store.tests)
             let filename = sanitizedFilename("all_lactate_reports_\(timestampString()).pdf")
@@ -1344,7 +687,7 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func pdfData(for tests: [LactateTest]) throws -> Data {
+    func pdfData(for tests: [LactateTest]) throws -> Data {
         let pageWidth: CGFloat = 612
         let pageHeight: CGFloat = 792
         let margin: CGFloat = 40
@@ -1467,7 +810,7 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func exportChartImage(for test: LactateTest) -> UIImage? {
+    func exportChartImage(for test: LactateTest) -> UIImage? {
         let points = graphPointsForExport(test)
         guard points.count >= 2 else { return nil }
 
@@ -1499,7 +842,7 @@ struct ContentView: View {
         return renderer.uiImage
     }
 
-    private func analysisSummary(for test: LactateTest) -> ExportAnalysisSummary {
+    func analysisSummary(for test: LactateTest) -> ExportAnalysisSummary {
         let graphPoints = graphPointsForExport(test)
 
         let lt1 = interpolatedThresholdPoint(targetLactate: 2.0, points: graphPoints)
@@ -1547,7 +890,7 @@ struct ContentView: View {
         )
     }
 
-    private func graphPointsForExport(_ test: LactateTest) -> [GraphPoint] {
+    func graphPointsForExport(_ test: LactateTest) -> [GraphPoint] {
         test.steps.compactMap { step in
             guard let lactate = step.lactate, let power = step.powerWatts else { return nil }
             return GraphPoint(
@@ -1563,7 +906,7 @@ struct ContentView: View {
         .sorted { $0.x < $1.x }
     }
 
-    private func primaryWorkloadPoints(for test: LactateTest) -> [WorkloadLactatePoint] {
+    func primaryWorkloadPoints(for test: LactateTest) -> [WorkloadLactatePoint] {
         switch test.sport {
         case .cycling:
             let powerPoints = test.steps.compactMap { step -> WorkloadLactatePoint? in
@@ -1616,7 +959,7 @@ struct ContentView: View {
         }
     }
 
-    private func exportTrainingZoneLines(for test: LactateTest) -> [String] {
+    func exportTrainingZoneLines(for test: LactateTest) -> [String] {
         var lines: [String] = []
 
         if let powerZones = powerFiveZones(for: test) {
@@ -1664,7 +1007,7 @@ struct ContentView: View {
 
     // MARK: - Zone Helpers for Export
 
-    private func heartRateFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+    func heartRateFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
         let pairs = test.steps.compactMap { step -> MetricLactatePair? in
             guard let hr = step.avgHeartRate, let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: Double(hr), lactate: lactate)
@@ -1673,7 +1016,7 @@ struct ContentView: View {
         return fiveZonesIncreasing(from: pairs, middleLactate: middle)
     }
 
-    private func powerFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+    func powerFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
         let pairs = test.steps.compactMap { step -> MetricLactatePair? in
             guard let power = step.powerWatts, let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: Double(power), lactate: lactate)
@@ -1682,7 +1025,7 @@ struct ContentView: View {
         return fiveZonesIncreasing(from: pairs, middleLactate: middle)
     }
 
-    private func cyclingSpeedFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+    func cyclingSpeedFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
         let pairs = test.steps.compactMap { step -> MetricLactatePair? in
             guard let speed = step.cyclingSpeedKmh, let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: speed, lactate: lactate)
@@ -1691,7 +1034,7 @@ struct ContentView: View {
         return fiveZonesIncreasing(from: pairs, middleLactate: middle)
     }
 
-    private func runningPaceFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
+    func runningPaceFiveZones(for test: LactateTest) -> FiveZoneThresholds? {
         let pairs = test.steps.compactMap { step -> MetricLactatePair? in
             guard let paceSeconds = step.runningPaceSecondsPerKm,
                   let lactate = step.lactate,
@@ -1712,7 +1055,7 @@ struct ContentView: View {
     }
 
 
-    private func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
+    func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
         let raw: [GraphPoint] = testSteps.compactMap { step in
             guard let lactate = step.lactate else { return nil }
 
@@ -1746,16 +1089,16 @@ struct ContentView: View {
         return raw.sorted { $0.x < $1.x }
     }
 
-    private func nearestPoint(toX xValue: Double) -> GraphPoint? {
+    func nearestPoint(toX xValue: Double) -> GraphPoint? {
         guard !allDisplayedGraphPoints.isEmpty else { return nil }
         return allDisplayedGraphPoints.min { abs($0.x - xValue) < abs($1.x - xValue) }
     }
 
-    private func interpolatedThresholdPoint(targetLactate: Double) -> ThresholdPoint? {
+    func interpolatedThresholdPoint(targetLactate: Double) -> ThresholdPoint? {
         interpolatedThresholdPoint(targetLactate: targetLactate, points: currentGraphPoints)
     }
 
-    private func interpolatedThresholdPoint(targetLactate: Double, points: [GraphPoint]) -> ThresholdPoint? {
+    func interpolatedThresholdPoint(targetLactate: Double, points: [GraphPoint]) -> ThresholdPoint? {
         guard points.count >= 2 else { return nil }
 
         for index in 0..<(points.count - 1) {
@@ -1786,7 +1129,7 @@ struct ContentView: View {
         return nil
     }
 
-    private func dmaxPoint(from points: [WorkloadLactatePoint]) -> WorkloadLactatePoint? {
+    func dmaxPoint(from points: [WorkloadLactatePoint]) -> WorkloadLactatePoint? {
         guard points.count >= 3 else { return nil }
 
         let first = points.first!
@@ -1819,7 +1162,7 @@ struct ContentView: View {
         return bestPoint
     }
 
-    private func modifiedDmaxPoint(from points: [WorkloadLactatePoint]) -> WorkloadThresholdResult? {
+    func modifiedDmaxPoint(from points: [WorkloadLactatePoint]) -> WorkloadThresholdResult? {
         guard points.count >= 3 else { return nil }
         guard let lastPoint = points.last else { return nil }
 
@@ -1860,7 +1203,7 @@ struct ContentView: View {
         return WorkloadThresholdResult(workload: bestPoint.workload, lactate: bestPoint.lactate)
     }
 
-    private func logLogBreakpoint(from points: [WorkloadLactatePoint]) -> WorkloadThresholdResult? {
+    func logLogBreakpoint(from points: [WorkloadLactatePoint]) -> WorkloadThresholdResult? {
         let validPoints = points.filter { $0.workload > 0 && $0.lactate > 0 }
         guard validPoints.count >= 4 else { return nil }
 
@@ -1908,7 +1251,7 @@ struct ContentView: View {
         return WorkloadThresholdResult(workload: bestIntersectionX, lactate: bestIntersectionY)
     }
 
-    private func linearRegression(for data: [(x: Double, y: Double)]) -> LinearRegressionResult? {
+    func linearRegression(for data: [(x: Double, y: Double)]) -> LinearRegressionResult? {
         guard data.count >= 2 else { return nil }
 
         let n = Double(data.count)
@@ -1932,7 +1275,7 @@ struct ContentView: View {
         return LinearRegressionResult(intercept: intercept, slope: slope, sse: sse)
     }
 
-    private func primaryWorkloadPoints(for draft: LactateTestDraft) -> [WorkloadLactatePoint] {
+    func primaryWorkloadPoints(for draft: LactateTestDraft) -> [WorkloadLactatePoint] {
         switch draft.sport {
         case .cycling:
             let powerPoints = draft.steps.compactMap { step -> WorkloadLactatePoint? in
@@ -1985,7 +1328,7 @@ struct ContentView: View {
         }
     }
 
-    private func fiveZonesIncreasing(from pairs: [MetricLactatePair], middleLactate: Double?) -> FiveZoneThresholds? {
+    func fiveZonesIncreasing(from pairs: [MetricLactatePair], middleLactate: Double?) -> FiveZoneThresholds? {
         guard let middleLactate else { return nil }
 
         guard let lt1 = interpolatedMetric(atLactate: 2.0, from: pairs),
@@ -2002,7 +1345,7 @@ struct ContentView: View {
         )
     }
 
-    private func interpolatedMetric(atLactate targetLactate: Double, from pairs: [MetricLactatePair]) -> Double? {
+    func interpolatedMetric(atLactate targetLactate: Double, from pairs: [MetricLactatePair]) -> Double? {
         guard pairs.count >= 2 else { return nil }
 
         let sortedPairs = pairs.sorted { $0.metric < $1.metric }
@@ -2029,7 +1372,7 @@ struct ContentView: View {
         return nil
     }
 
-    private func heartRateFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
+    func heartRateFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
         let pairs = draft.steps.compactMap { step -> MetricLactatePair? in
             guard let hr = step.avgHeartRate, let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: Double(hr), lactate: lactate)
@@ -2037,7 +1380,7 @@ struct ContentView: View {
         return fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate)
     }
 
-    private func powerFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
+    func powerFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
         let pairs = draft.steps.compactMap { step -> MetricLactatePair? in
             guard let power = step.powerWatts, let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: Double(power), lactate: lactate)
@@ -2045,7 +1388,7 @@ struct ContentView: View {
         return fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate)
     }
 
-    private func cyclingSpeedFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
+    func cyclingSpeedFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
         let pairs = draft.steps.compactMap { step -> MetricLactatePair? in
             guard let speed = step.cyclingSpeedKmh, let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: speed, lactate: lactate)
@@ -2053,7 +1396,7 @@ struct ContentView: View {
         return fiveZonesIncreasing(from: pairs, middleLactate: preferredMiddleLactate)
     }
 
-    private func runningPaceFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
+    func runningPaceFiveZones(for draft: LactateTestDraft) -> FiveZoneThresholds? {
         let pairs = draft.steps.compactMap { step -> MetricLactatePair? in
             guard let paceSeconds = step.runningPaceSecondsPerKm,
                   let lactate = step.lactate,
@@ -2077,7 +1420,7 @@ struct ContentView: View {
 
     // MARK: - Formatting
 
-    private func formatXAxisValue(_ value: Double) -> String {
+    func formatXAxisValue(_ value: Double) -> String {
         switch graphXAxis {
         case .power:
             return "\(Int(value.rounded())) W"
@@ -2086,27 +1429,27 @@ struct ContentView: View {
         }
     }
 
-    private func formatExportXAxisValue(_ value: Double) -> String {
+    func formatExportXAxisValue(_ value: Double) -> String {
         "\(Int(value.rounded())) W"
     }
 
-    private func formatHeartRate(_ value: Double) -> String {
+    func formatHeartRate(_ value: Double) -> String {
         "\(Int(value.rounded())) bpm"
     }
 
-    private func formatPower(_ value: Double) -> String {
+    func formatPower(_ value: Double) -> String {
         "\(Int(value.rounded())) W"
     }
 
-    private func formatSpeed(_ value: Double) -> String {
+    func formatSpeed(_ value: Double) -> String {
         SpeedFormatter.string(fromKmh: value, unit: unitPreference)
     }
 
-    private func formatPace(_ value: Double) -> String {
+    func formatPace(_ value: Double) -> String {
         PaceFormatter.string(fromSecondsPerKm: Int(value.rounded()), unit: unitPreference)
     }
 
-    private func formatPrimaryWorkload(_ value: Double) -> String {
+    func formatPrimaryWorkload(_ value: Double) -> String {
         switch draft.sport {
         case .cycling:
             if draft.steps.contains(where: { $0.powerWatts != nil && $0.lactate != nil }) {
@@ -2128,7 +1471,7 @@ struct ContentView: View {
         }
     }
 
-    private func formatPrimaryWorkload(_ value: Double, for test: LactateTest) -> String {
+    func formatPrimaryWorkload(_ value: Double, for test: LactateTest) -> String {
         switch test.sport {
         case .cycling:
             if test.steps.contains(where: { $0.powerWatts != nil && $0.lactate != nil }) {
@@ -2150,14 +1493,14 @@ struct ContentView: View {
         }
     }
 
-    private func shortDateString(_ date: Date) -> String {
+    func shortDateString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
     }
 
-    private func testLabel(for test: LactateTest) -> String {
+    func testLabel(for test: LactateTest) -> String {
         "\(test.athleteName) (\(shortDateString(test.date)))"
     }
 
@@ -2166,6 +1509,8 @@ struct ContentView: View {
 #Preview {
     ContentView(store: SwiftDataTestsStore())
 }
+
+
 
 
 
