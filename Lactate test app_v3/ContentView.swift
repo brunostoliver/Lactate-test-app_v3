@@ -2163,26 +2163,6 @@ struct ContentView: View {
 
 }
 
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
-}
-
-extension DateFormatter {
-    static var pdfTimestamp: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter
-    }
-}
-
 #Preview {
     ContentView(store: SwiftDataTestsStore())
 }
