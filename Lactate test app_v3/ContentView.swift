@@ -23,7 +23,6 @@ struct ContentView: View {
     @State var selectedGraphPoint: GraphPoint? = nil
     @State var comparedTestIDs: [UUID] = []
     @State var showFullScreenChart: Bool = false
-    @State var showDeleteSavedTestsAlert: Bool = false
     @State var editingTest: LactateTest? = nil
     @State var testPendingDeletion: LactateTest? = nil
     @State var showDeleteSingleTestAlert: Bool = false
@@ -78,14 +77,6 @@ struct ContentView: View {
         .sheet(item: $shareItem) { item in
             ShareSheet(activityItems: [item.url])
         }
-        .alert(deleteSavedTestsAlertTitle, isPresented: $showDeleteSavedTestsAlert) {
-            Button("Delete", role: .destructive) {
-                deleteSavedTests()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text(deleteSavedTestsAlertMessage)
-        }
         .alert("Delete this saved test?", isPresented: $showDeleteSingleTestAlert, presenting: testPendingDeletion) { test in
             Button("Delete", role: .destructive) {
                 deleteSingleSavedTest(test)
@@ -127,20 +118,6 @@ struct ContentView: View {
     var displayedTests: [LactateTest] {
         guard let selectedAthlete else { return store.tests }
         return store.tests(for: selectedAthlete.id)
-    }
-
-    var deleteSavedTestsAlertTitle: String {
-        if selectedAthlete != nil {
-            return "Delete this athlete's saved tests?"
-        }
-        return "Delete all saved tests?"
-    }
-
-    var deleteSavedTestsAlertMessage: String {
-        if let selectedAthlete {
-            return "This will permanently erase all saved lactate tests for \(selectedAthlete.name)."
-        }
-        return "This will permanently erase all saved lactate tests stored in the app."
     }
 
     @ViewBuilder
@@ -392,21 +369,6 @@ struct ContentView: View {
     func resetForm() {
         resetEntryFields()
         comparedTestIDs = []
-    }
-
-    func deleteSavedTests() {
-        if selectedAthlete != nil {
-            for test in displayedTests {
-                store.deleteTest(id: test.id)
-            }
-        } else {
-            store.clearAll()
-        }
-        comparedTestIDs = []
-        selectedGraphPoint = nil
-        editingTest = nil
-        testPendingDeletion = nil
-        showDeleteSingleTestAlert = false
     }
 
     func deleteSingleSavedTest(_ test: LactateTest) {

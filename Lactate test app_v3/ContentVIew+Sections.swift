@@ -106,22 +106,17 @@ extension ContentView {
                 )
             }
 
-            HStack {
+            HStack(spacing: 10) {
                 Button(action: addStep) {
-                    HStack {
-                        Image(systemName: "plus")
-                        Text("Add Step")
-                    }
+                    Label("Add Step", systemImage: "plus")
                 }
+                .buttonStyle(SecondaryActionButtonStyle())
 
                 if !draft.steps.isEmpty {
                     Button(action: removeLastStep) {
-                        HStack {
-                            Image(systemName: "minus")
-                            Text("Remove Last")
-                        }
+                        Label("Remove Last Step", systemImage: "minus")
                     }
-                    .foregroundColor(.red)
+                    .buttonStyle(DestructiveActionButtonStyle())
                 }
             }
         }
@@ -470,28 +465,23 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
 
-            HStack(spacing: 12) {
-                Button(action: saveCurrentTest) {
-                    Text(editingTest == nil ? "Save Test" : "Update Test")
-                        .fontWeight(.semibold)
-                }
-                .disabled(
-                    draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                    draft.steps.isEmpty
-                )
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Button(action: saveCurrentTest) {
+                        Label(editingTest == nil ? "Save Test" : "Update Test", systemImage: "square.and.arrow.down")
+                    }
+                    .buttonStyle(FilledActionButtonStyle())
+                    .disabled(
+                        draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                        draft.steps.isEmpty
+                    )
 
-                Button(action: resetForm) {
-                    Text(editingTest == nil ? "Reset Form" : "Cancel Edit")
-                        .fontWeight(.semibold)
+                    Button(action: resetForm) {
+                        Label(editingTest == nil ? "Reset Form" : "Cancel Edit", systemImage: "arrow.counterclockwise")
+                    }
+                    .buttonStyle(SecondaryActionButtonStyle())
                 }
 
-                Button(action: {
-                    showDeleteSavedTestsAlert = true
-                }) {
-                    Text("Delete Saved Tests")
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.red)
             }
         }
     }
@@ -522,9 +512,8 @@ extension ContentView {
                             Image(systemName: "square.and.arrow.up")
                             Text("Export All")
                         }
-                        .font(.caption)
-                        .fontWeight(.semibold)
                     }
+                    .buttonStyle(SecondaryActionButtonStyle())
                 }
             }
 
@@ -554,59 +543,56 @@ extension ContentView {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        HStack(spacing: 10) {
-                            Button(action: {
-                                loadTestIntoDraft(test)
-                            }) {
-                                Text("Load/Edit")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-
-                            Menu {
-                                Button("Export as JSON") {
-                                    exportSingleTestJSON(test)
-                                }
-                                Button("Export as CSV") {
-                                    exportSingleTestCSV(test)
-                                }
-                                Button("Export as PDF") {
-                                    exportSingleTestPDF(test)
-                                }
-                            } label: {
-                                Text("Export")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-
-                            Button(action: {
-                                testPendingDeletion = test
-                                showDeleteSingleTestAlert = true
-                            }) {
-                                Text("Delete")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.red)
-
-                            if isCompared(test) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
                                 Button(action: {
-                                    removeComparedTest(test)
+                                    loadTestIntoDraft(test)
                                 }) {
-                                    Text("Remove Comparison")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
+                                    Label("Load/Edit", systemImage: "square.and.pencil")
                                 }
-                                .foregroundColor(.red)
-                            } else {
+                                .buttonStyle(SecondaryActionButtonStyle())
+
+                                Menu {
+                                    Button("Export as JSON") {
+                                        exportSingleTestJSON(test)
+                                    }
+                                    Button("Export as CSV") {
+                                        exportSingleTestCSV(test)
+                                    }
+                                    Button("Export as PDF") {
+                                        exportSingleTestPDF(test)
+                                    }
+                                } label: {
+                                    Label("Export", systemImage: "square.and.arrow.up")
+                                }
+                                .buttonStyle(SecondaryActionButtonStyle())
+
                                 Button(action: {
-                                    addComparedTest(test)
+                                    testPendingDeletion = test
+                                    showDeleteSingleTestAlert = true
                                 }) {
-                                    Text("Compare")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
+                                    Label("Delete", systemImage: "trash")
                                 }
-                                .disabled(!canAddMoreComparisons(for: test))
+                                .buttonStyle(DestructiveActionButtonStyle())
+                            }
+
+                            HStack(spacing: 8) {
+                                if isCompared(test) {
+                                    Button(action: {
+                                        removeComparedTest(test)
+                                    }) {
+                                        Label("Remove Comparison", systemImage: "minus.circle")
+                                    }
+                                    .buttonStyle(DestructiveActionButtonStyle())
+                                } else {
+                                    Button(action: {
+                                        addComparedTest(test)
+                                    }) {
+                                        Label("Compare", systemImage: "chart.line.uptrend.xyaxis")
+                                    }
+                                    .buttonStyle(SecondaryActionButtonStyle())
+                                    .disabled(!canAddMoreComparisons(for: test))
+                                }
                             }
                         }
                     }
@@ -652,8 +638,62 @@ extension ContentView {
             }
         }
     }
-
 }
 
+struct FilledActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption)
+            .fontWeight(.semibold)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 38)
+            .background(Color.accentColor.opacity(configuration.isPressed ? 0.7 : 1.0))
+            .foregroundColor(.white)
+            .clipShape(Capsule())
+    }
+}
+
+struct SecondaryActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption)
+            .fontWeight(.semibold)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 38)
+            .background(Color(.secondarySystemBackground).opacity(configuration.isPressed ? 0.7 : 1.0))
+            .foregroundColor(.primary)
+            .overlay(
+                Capsule()
+                    .stroke(Color(.separator), lineWidth: 1)
+            )
+            .clipShape(Capsule())
+    }
+}
+
+struct DestructiveActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption)
+            .fontWeight(.semibold)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 38)
+            .background(Color.red.opacity(configuration.isPressed ? 0.16 : 0.1))
+            .foregroundColor(.red)
+            .overlay(
+                Capsule()
+                    .stroke(Color.red.opacity(0.35), lineWidth: 1)
+            )
+            .clipShape(Capsule())
+    }
+}
 
 
