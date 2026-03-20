@@ -352,10 +352,9 @@ struct ContentView: View {
 
                     if isEditorScreen {
                         editingBannerSection
-                        formSection
                     }
 
-                    if isEditorScreen && hasEnoughDataForAnalysis {
+                    if isEditorScreen && editingTest != nil && hasEnoughDataForAnalysis {
                         tableSection
                     }
 
@@ -370,8 +369,18 @@ struct ContentView: View {
                     }
 
                     if isEditorScreen {
+                        formSection
+                    }
+
+                    if isEditorScreen && editingTest == nil && hasEnoughDataForAnalysis {
+                        tableSection
+                    }
+
+                    if isEditorScreen {
                         saveSection
-                        sampleTestsSection
+                        if editingTest == nil {
+                            sampleTestsSection
+                        }
                     }
                 }
                 .padding()
@@ -616,7 +625,11 @@ struct ContentView: View {
     }
 
     func isLoaded(_ test: LactateTest) -> Bool {
-        editingTest?.id == test.id
+        editingTest?.id == test.id && loadedTestMode == .editing
+    }
+
+    func isComparisonBase(_ test: LactateTest) -> Bool {
+        editingTest?.id == test.id && loadedTestMode == .comparisonBase
     }
 
     func isCompared(_ test: LactateTest) -> Bool {
@@ -624,7 +637,7 @@ struct ContentView: View {
     }
 
     func canAddMoreComparisons(for test: LactateTest) -> Bool {
-        if isLoaded(test) { return false }
+        if isLoaded(test) || isComparisonBase(test) { return false }
         if comparedTestIDs.contains(test.id) { return true }
         return comparedTestIDs.count < 2
     }
@@ -647,6 +660,18 @@ struct ContentView: View {
     }
 
     func removeComparedTest(_ test: LactateTest) {
+        if isComparisonBase(test) {
+            if let nextBaseID = comparedTestIDs.first,
+               let nextBaseTest = displayedTests.first(where: { $0.id == nextBaseID }) {
+                pendingScrollTarget = nil
+                loadTestIntoDraft(nextBaseTest, scrollTarget: nil, mode: .comparisonBase)
+            } else {
+                resetEntryFields()
+            }
+            selectedGraphPoint = nil
+            return
+        }
+
         comparedTestIDs.removeAll { $0 == test.id }
         selectedGraphPoint = nil
     }

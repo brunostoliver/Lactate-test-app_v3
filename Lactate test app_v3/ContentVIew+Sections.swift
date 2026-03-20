@@ -313,7 +313,7 @@ extension ContentView {
             Text("Comparison")
                 .font(.headline)
 
-            Text("The graph always includes the current input test. You may add up to 2 saved tests for comparison.")
+            Text("The graph always includes the analyzed test. You may add up to 2 saved tests for comparison.")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -321,7 +321,7 @@ extension ContentView {
                 comparisonLegendRow(
                     colorName: .blue,
                     title: currentSeriesLabel,
-                    subtitle: "Current input"
+                    subtitle: "Analyzed test"
                 )
 
                 if selectedComparisonTests.indices.contains(0) {
@@ -369,6 +369,8 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
 
+            analyzedTestSection
+
             HStack {
                 Text("Lactate Curve")
                     .font(.headline)
@@ -395,7 +397,7 @@ extension ContentView {
             .pickerStyle(SegmentedPickerStyle())
 
             if currentGraphPoints.count < 2 {
-                Text("Enter at least two valid current-input points with lactate and the selected X-axis value to display the graph.")
+                Text("Enter at least two valid analyzed-test points with lactate and the selected X-axis value to display the graph.")
                     .foregroundColor(.secondary)
             } else {
                 LactateChartView(
@@ -419,15 +421,39 @@ extension ContentView {
         }
     }
 
+    var analyzedTestSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Analyzed Test")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+
+            Text(currentSeriesLabel)
+                .font(.headline)
+
+            Text("\(shortDateString(draft.date)) • \(draft.sport.rawValue.capitalized)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.blue.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.blue.opacity(0.25), lineWidth: 1)
+        )
+        .cornerRadius(12)
+    }
+
     var thresholdsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
 
-            Text("Threshold Summary (Current Input)")
+            Text("Threshold Summary")
                 .font(.headline)
 
             if currentGraphPoints.count < 2 {
-                Text("Not enough current-input data to estimate thresholds.")
+                Text("Not enough analyzed-test data to estimate thresholds.")
                     .foregroundColor(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
@@ -484,7 +510,7 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
 
-            Text("5-Zone Training Model (Current Input)")
+            Text("5-Zone Training Model")
                 .font(.headline)
 
             if let powerZones = powerFiveZones {
@@ -680,7 +706,7 @@ extension ContentView {
                                 Button(action: {
                                     editorDestination = EditorDestination(test: test)
                                 }) {
-                                    Label("Load/Edit", systemImage: "square.and.pencil")
+                                    Label("View/Edit", systemImage: "square.and.pencil")
                                 }
                                 .buttonStyle(SecondaryActionButtonStyle())
 
@@ -709,7 +735,7 @@ extension ContentView {
                             }
 
                             HStack(spacing: 8) {
-                                if isCompared(test) {
+                                if isComparisonBase(test) || isCompared(test) {
                                     Button(action: {
                                         removeComparedTest(test)
                                     }) {

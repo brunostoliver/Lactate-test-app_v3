@@ -82,6 +82,15 @@ struct AthleteListView: View {
                 }
             }
             .navigationTitle("Athletes")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Image("AppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 36, height: 36)
+                        .accessibilityLabel("App logo")
+                }
+            }
             .preferredColorScheme(appearanceMode.colorScheme)
             .sheet(isPresented: $showNewAthleteSheet) {
                 NavigationStack {
