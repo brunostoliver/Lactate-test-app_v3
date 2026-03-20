@@ -3,9 +3,15 @@ import SwiftUI
 struct AthleteListView: View {
     @ObservedObject var store: SwiftDataTestsStore
 
+    @AppStorage("appearanceMode") private var appearanceModeRawValue: String = AppearanceMode.system.rawValue
+
     @State private var newAthleteName = ""
     @State private var showNewAthleteSheet = false
     @State private var selectedAthleteForNewTest: Athlete?
+
+    private var appearanceMode: AppearanceMode {
+        AppearanceMode(rawValue: appearanceModeRawValue) ?? .system
+    }
 
     var body: some View {
         NavigationStack {
@@ -43,8 +49,18 @@ struct AthleteListView: View {
                         }
                     }
                 }
+
+                Section("Appearance") {
+                    Picker("Appearance", selection: $appearanceModeRawValue) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Text(mode.title).tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
             }
             .navigationTitle("Athletes")
+            .preferredColorScheme(appearanceMode.colorScheme)
             .sheet(isPresented: $showNewAthleteSheet) {
                 NavigationStack {
                     Form {
@@ -84,4 +100,5 @@ struct AthleteListView: View {
         }
     }
 }
+
 

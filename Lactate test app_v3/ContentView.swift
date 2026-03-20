@@ -171,7 +171,6 @@ struct ContentView: View {
 
                     saveSection
                     savedTestsSection
-                    appearanceSection
                     sampleTestsSection
                 }
                 .padding()

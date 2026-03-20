@@ -619,22 +619,6 @@ extension ContentView {
         }
     }
 
-    var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            Text("Appearance")
-                .font(.headline)
-
-            Picker("Appearance", selection: $appearanceModeRawValue) {
-                ForEach(AppearanceMode.allCases) { mode in
-                    Text(mode.title).tag(mode.rawValue)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-        }
-    }
-
     var sampleTestsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
@@ -672,4 +656,4 @@ extension ContentView {
 }
 
 
-	
+
