@@ -11,6 +11,8 @@ import Charts
 
 struct ContentView: View {
     @ObservedObject var store: SwiftDataTestsStore
+    let selectedAthlete: Athlete?
+    let showsNavigationChrome: Bool
 
     @State var unitPreference: UnitPreference = .metric
     @AppStorage("appearanceMode") var appearanceModeRawValue: String = AppearanceMode.system.rawValue
@@ -29,51 +31,28 @@ struct ContentView: View {
     @State var shareItem: ShareItem? = nil
     @State var exportErrorMessage: String? = nil
     @State var showExportErrorAlert: Bool = false
+    @State var didApplySelectedAthlete = false
 
-    init(store: SwiftDataTestsStore) {
+    init(
+        store: SwiftDataTestsStore,
+        selectedAthlete: Athlete? = nil,
+        showsNavigationChrome: Bool = true
+    ) {
         self.store = store
+        self.selectedAthlete = selectedAthlete
+        self.showsNavigationChrome = showsNavigationChrome
     }
 
     var body: some View {
-        NavigationView {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Color.clear
-                            .frame(height: 1)
-                            .id("topOfForm")
-
-                        editingBannerSection
-                        formSection
-
-                        if hasEnoughDataForAnalysis {
-                            tableSection
-                        }
-
-                        if shouldShowComparisonSection {
-                            comparisonSection
-                        }
-
-                        if hasEnoughDataForAnalysis {
-                            graphSection
-                            thresholdsSection
-                            trainingZonesSection
-                        }
-
-                        saveSection
-                        savedTestsSection
-                        appearanceSection
-                        sampleTestsSection
-                    }
-                    .padding()
+        Group {
+            if showsNavigationChrome {
+                NavigationView {
+                    editorScrollView
+                        .navigationBarTitle(navigationTitle, displayMode: .inline)
+                        .navigationBarItems(trailing: unitsPicker)
                 }
-                .navigationBarTitle("Lactate Test Intake", displayMode: .inline)
-                .navigationBarItems(trailing: unitsPicker)
-                .onChange(of: editingTest?.id) {
-                    withAnimation {
-                        proxy.scrollTo("topOfForm", anchor: .top)
-                    }
-                }
+            } else {
+                editorScrollView
             }
         }
         .preferredColorScheme(appearanceMode.colorScheme)
@@ -99,13 +78,13 @@ struct ContentView: View {
         .sheet(item: $shareItem) { item in
             ShareSheet(activityItems: [item.url])
         }
-        .alert("Delete all saved tests?", isPresented: $showDeleteSavedTestsAlert) {
+        .alert(deleteSavedTestsAlertTitle, isPresented: $showDeleteSavedTestsAlert) {
             Button("Delete", role: .destructive) {
                 deleteSavedTests()
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This will permanently erase all saved lactate tests stored in the app.")
+            Text(deleteSavedTestsAlertMessage)
         }
         .alert("Delete this saved test?", isPresented: $showDeleteSingleTestAlert, presenting: testPendingDeletion) { test in
             Button("Delete", role: .destructive) {
@@ -122,6 +101,9 @@ struct ContentView: View {
         } message: {
             Text(exportErrorMessage ?? "An unknown export error occurred.")
         }
+        .onAppear {
+            applySelectedAthleteIfNeeded()
+        }
     }
 
     // MARK: - Derived State
@@ -136,6 +118,70 @@ struct ContentView: View {
             return "Current Input"
         }
         return "\(trimmed) (\(shortDateString(draft.date)))"
+    }
+
+    var navigationTitle: String {
+        selectedAthlete?.name ?? "Lactate Test Intake"
+    }
+
+    var displayedTests: [LactateTest] {
+        guard let selectedAthlete else { return store.tests }
+        return store.tests(for: selectedAthlete.id)
+    }
+
+    var deleteSavedTestsAlertTitle: String {
+        if selectedAthlete != nil {
+            return "Delete this athlete's saved tests?"
+        }
+        return "Delete all saved tests?"
+    }
+
+    var deleteSavedTestsAlertMessage: String {
+        if let selectedAthlete {
+            return "This will permanently erase all saved lactate tests for \(selectedAthlete.name)."
+        }
+        return "This will permanently erase all saved lactate tests stored in the app."
+    }
+
+    @ViewBuilder
+    var editorScrollView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Color.clear
+                        .frame(height: 1)
+                        .id("topOfForm")
+
+                    editingBannerSection
+                    formSection
+
+                    if hasEnoughDataForAnalysis {
+                        tableSection
+                    }
+
+                    if shouldShowComparisonSection {
+                        comparisonSection
+                    }
+
+                    if hasEnoughDataForAnalysis {
+                        graphSection
+                        thresholdsSection
+                        trainingZonesSection
+                    }
+
+                    saveSection
+                    savedTestsSection
+                    appearanceSection
+                    sampleTestsSection
+                }
+                .padding()
+            }
+            .onChange(of: editingTest?.id) {
+                withAnimation {
+                    proxy.scrollTo("topOfForm", anchor: .top)
+                }
+            }
+        }
     }
 
     var selectedComparisonTests: [LactateTest] {
@@ -301,6 +347,7 @@ struct ContentView: View {
     func loadTestIntoDraft(_ test: LactateTest) {
         editingTest = test
         draft = LactateTestDraft(
+            athleteID: test.athleteID,
             athleteName: test.athleteName,
             sport: test.sport,
             date: test.date,
@@ -340,6 +387,7 @@ struct ContentView: View {
         editingTest = nil
         graphXAxis = .power
         selectedGraphPoint = nil
+        applySelectedAthlete(force: true)
     }
 
     func resetForm() {
@@ -348,7 +396,13 @@ struct ContentView: View {
     }
 
     func deleteSavedTests() {
-        store.clearAll()
+        if selectedAthlete != nil {
+            for test in displayedTests {
+                store.deleteTest(id: test.id)
+            }
+        } else {
+            store.clearAll()
+        }
         comparedTestIDs = []
         selectedGraphPoint = nil
         editingTest = nil
@@ -430,8 +484,12 @@ struct ContentView: View {
             )
         }
 
+        let targetAthleteID = selectedAthlete?.id
+        let targetAthleteName = selectedAthlete?.name ?? athleteName
+
         draft = LactateTestDraft(
-            athleteName: athleteName,
+            athleteID: targetAthleteID,
+            athleteName: targetAthleteName,
             sport: .cycling,
             date: formatter.date(from: dateString) ?? Date(),
             steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
@@ -515,6 +573,20 @@ struct ContentView: View {
                 SpeedFormatter.string(fromKmh: $0, unit: unitPreference)
             } ?? "-"
             return "\(step.stepIndex) | \(lactate) | \(hr) | \(speed) | \(power)"
+        }
+    }
+
+    func applySelectedAthleteIfNeeded() {
+        guard !didApplySelectedAthlete else { return }
+        didApplySelectedAthlete = true
+        applySelectedAthlete(force: true)
+    }
+
+    func applySelectedAthlete(force: Bool = false) {
+        guard let selectedAthlete else { return }
+        if force || draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            draft.athleteID = selectedAthlete.id
+            draft.athleteName = selectedAthlete.name
         }
     }
 

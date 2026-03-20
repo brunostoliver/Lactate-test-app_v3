@@ -14,6 +14,22 @@ enum Sport: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
+struct Athlete: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.name = name
+        self.createdAt = createdAt
+    }
+}
+
 struct LactateStep: Identifiable, Codable, Hashable {
     let id: UUID
     var stepIndex: Int
@@ -55,6 +71,7 @@ struct LactateStep: Identifiable, Codable, Hashable {
 
 struct LactateTest: Identifiable, Codable, Hashable {
     let id: UUID
+    var athleteID: UUID?
     var athleteName: String
     var sport: Sport
     var date: Date
@@ -62,12 +79,14 @@ struct LactateTest: Identifiable, Codable, Hashable {
 
     init(
         id: UUID = UUID(),
+        athleteID: UUID? = nil,
         athleteName: String,
         sport: Sport,
         date: Date,
         steps: [LactateStep]
     ) {
         self.id = id
+        self.athleteID = athleteID
         self.athleteName = athleteName
         self.sport = sport
         self.date = date
@@ -76,17 +95,20 @@ struct LactateTest: Identifiable, Codable, Hashable {
 }
 
 struct LactateTestDraft {
+    var athleteID: UUID?
     var athleteName: String
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
 
     init(
+        athleteID: UUID? = nil,
         athleteName: String = "",
         sport: Sport = .running,
         date: Date = Date(),
         steps: [LactateStep] = [LactateStep.emptyStep(stepIndex: 1)]
     ) {
+        self.athleteID = athleteID
         self.athleteName = athleteName
         self.sport = sport
         self.date = date
@@ -95,7 +117,8 @@ struct LactateTestDraft {
 
     func asLactateTest() -> LactateTest {
         LactateTest(
-            athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Test" : athleteName,
+            athleteID: athleteID,
+            athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Athlete" : athleteName,
             sport: sport,
             date: date,
             steps: steps
@@ -106,3 +129,5 @@ struct LactateTestDraft {
         self = LactateTestDraft()
     }
 }
+
+

@@ -8,6 +8,24 @@
 import Foundation
 import SwiftData
 
+extension Athlete {
+    init(entity: AthleteEntity) {
+        self.init(
+            id: entity.id,
+            name: entity.name,
+            createdAt: entity.createdAt
+        )
+    }
+
+    func makeEntity() -> AthleteEntity {
+        AthleteEntity(
+            id: id,
+            name: name,
+            createdAt: createdAt
+        )
+    }
+}
+
 extension LactateStep {
     init(entity: LactateStepEntity) {
         self.init(
@@ -42,6 +60,7 @@ extension LactateTest {
 
         self.init(
             id: entity.id,
+            athleteID: entity.athlete?.id,
             athleteName: entity.athleteName,
             sport: entity.sport,
             date: entity.date,
@@ -69,3 +88,5 @@ extension LactateTest {
         return entity
     }
 }
+
+

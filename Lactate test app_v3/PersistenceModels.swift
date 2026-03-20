@@ -9,11 +9,35 @@ import Foundation
 import SwiftData
 
 @Model
+final class AthleteEntity {
+    @Attribute(.unique) var id: UUID
+    var name: String
+    var createdAt: Date
+
+    @Relationship(deleteRule: .cascade, inverse: \LactateTestEntity.athlete)
+    var tests: [LactateTestEntity]
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        createdAt: Date = Date(),
+        tests: [LactateTestEntity] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.createdAt = createdAt
+        self.tests = tests
+    }
+}
+
+@Model
 final class LactateTestEntity {
     @Attribute(.unique) var id: UUID
     var athleteName: String
     var sportRawValue: String
     var date: Date
+
+    var athlete: AthleteEntity?
 
     @Relationship(deleteRule: .cascade, inverse: \LactateStepEntity.test)
     var steps: [LactateStepEntity]
@@ -23,12 +47,14 @@ final class LactateTestEntity {
         athleteName: String,
         sportRawValue: String,
         date: Date,
+        athlete: AthleteEntity? = nil,
         steps: [LactateStepEntity] = []
     ) {
         self.id = id
         self.athleteName = athleteName
         self.sportRawValue = sportRawValue
         self.date = date
+        self.athlete = athlete
         self.steps = steps
     }
 
@@ -70,3 +96,5 @@ final class LactateStepEntity {
         self.test = test
     }
 }
+
+

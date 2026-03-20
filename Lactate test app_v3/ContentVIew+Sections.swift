@@ -70,8 +70,19 @@ extension ContentView {
                     .foregroundColor(.secondary)
             }
 
-            TextField("Athlete name", text: $draft.athleteName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+            if let selectedAthlete {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Athlete")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(selectedAthlete.name)
+                        .font(.body)
+                        .fontWeight(.semibold)
+                }
+            } else {
+                TextField("Athlete name", text: $draft.athleteName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
 
             Picker("Sport", selection: $draft.sport) {
                 ForEach(Sport.allCases) { s in
@@ -495,16 +506,16 @@ extension ContentView {
 
                 Spacer()
 
-                if !store.tests.isEmpty {
+                if !displayedTests.isEmpty {
                     Menu {
                         Button("Export All as JSON") {
-                            exportAllSavedTestsJSON()
+                            exportAllSavedTestsJSON(displayedTests)
                         }
                         Button("Export All as CSV") {
-                            exportAllSavedTestsCSV()
+                            exportAllSavedTestsCSV(displayedTests)
                         }
                         Button("Export All as PDF") {
-                            exportAllSavedTestsPDF()
+                            exportAllSavedTestsPDF(displayedTests)
                         }
                     } label: {
                         HStack(spacing: 4) {
@@ -517,11 +528,11 @@ extension ContentView {
                 }
             }
 
-            if store.tests.isEmpty {
+            if displayedTests.isEmpty {
                 Text("No tests saved yet.")
                     .foregroundColor(.secondary)
             } else {
-                ForEach(store.tests) { test in
+                ForEach(displayedTests) { test in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .center, spacing: 8) {
                             Text(test.athleteName).bold()
@@ -661,4 +672,4 @@ extension ContentView {
 }
 
 
-
+	

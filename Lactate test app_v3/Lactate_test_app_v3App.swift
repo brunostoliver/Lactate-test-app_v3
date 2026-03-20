@@ -1,8 +1,8 @@
 //
-//  Lactate_test_app_v3App.swift
+//  LactateTestApp.swift
 //  Lactate test app_v3
 //
-//  Created by Leonor Oliveira on 3/15/26.
+//  Created by Bruno Oliveira on 3/15/26.
 //
 
 import SwiftUI
@@ -14,7 +14,7 @@ struct Lactate_test_app_v3App: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [LactateTestEntity.self, LactateStepEntity.self])
+        .modelContainer(for: [AthleteEntity.self, LactateTestEntity.self, LactateStepEntity.self])
     }
 }
 
@@ -24,7 +24,7 @@ private struct RootView: View {
     @State private var didSetUpStore = false
 
     var body: some View {
-        ContentView(store: swiftDataStore)
+        AthleteListView(store: swiftDataStore)
             .onAppear {
                 guard !didSetUpStore else { return }
                 didSetUpStore = true
@@ -44,3 +44,5 @@ private struct RootView: View {
         }
     }
 }
+
+

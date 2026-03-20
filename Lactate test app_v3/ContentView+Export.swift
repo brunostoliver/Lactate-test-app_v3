@@ -20,13 +20,14 @@ extension ContentView {
         }
     }
 
-    func exportAllSavedTestsJSON() {
+    func exportAllSavedTestsJSON(_ testsToExport: [LactateTest]? = nil) {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
 
-            let data = try encoder.encode(store.tests)
+            let tests = testsToExport ?? store.tests
+            let data = try encoder.encode(tests)
             let filename = sanitizedFilename("all_lactate_tests_\(timestampString()).json")
             let url = try writeExportFile(data: data, filename: filename)
             shareItem = ShareItem(url: url)
@@ -54,9 +55,10 @@ extension ContentView {
         }
     }
 
-    func exportAllSavedTestsCSV() {
+    func exportAllSavedTestsCSV(_ testsToExport: [LactateTest]? = nil) {
         do {
-            let csv = csvString(for: store.tests)
+            let tests = testsToExport ?? store.tests
+            let csv = csvString(for: tests)
             guard let data = csv.data(using: .utf8) else {
                 throw ExportError.encodingFailed
             }
@@ -158,9 +160,10 @@ extension ContentView {
     }
 
     @MainActor
-    func exportAllSavedTestsPDF() {
+    func exportAllSavedTestsPDF(_ testsToExport: [LactateTest]? = nil) {
         do {
-            let data = try pdfData(for: store.tests)
+            let tests = testsToExport ?? store.tests
+            let data = try pdfData(for: tests)
             let filename = sanitizedFilename("all_lactate_reports_\(timestampString()).pdf")
             let url = try writeExportFile(data: data, filename: filename)
             shareItem = ShareItem(url: url)
