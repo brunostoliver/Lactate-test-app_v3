@@ -14,6 +14,110 @@ extension ContentView {
         }
     }
 
+    var testFiltersSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Filter Tests")
+                .font(.headline)
+
+            HStack {
+                Text("Sport")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(width: 90, alignment: .leading)
+
+                Spacer()
+
+                Menu {
+                    ForEach(TestSportFilter.allCases) { filter in
+                        Button(filter.title) {
+                            testSportFilter = filter
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(testSportFilter.title)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(Capsule())
+                }
+            }
+
+            HStack {
+                Text("Start Date")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(width: 90, alignment: .leading)
+
+                Spacer()
+
+                if let selectedStartDate = startDateFilter {
+                    Button(shortDateString(selectedStartDate)) {
+                        activeFilterDatePicker = .start
+                    }
+                    .buttonStyle(SecondaryActionButtonStyle())
+
+                    Button("Clear") {
+                        self.startDateFilter = nil
+                    }
+                    .font(.caption)
+                } else {
+                    Button("Select date") {
+                        activeFilterDatePicker = .start
+                    }
+                    .buttonStyle(SecondaryActionButtonStyle())
+                }
+            }
+
+            HStack {
+                Text("End Date")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(width: 90, alignment: .leading)
+
+                Spacer()
+
+                if let selectedEndDate = endDateFilter {
+                    Button(shortDateString(selectedEndDate)) {
+                        activeFilterDatePicker = .end
+                    }
+                    .buttonStyle(SecondaryActionButtonStyle())
+
+                    Button("Clear") {
+                        self.endDateFilter = nil
+                    }
+                    .font(.caption)
+                } else {
+                    Button("Select date") {
+                        activeFilterDatePicker = .end
+                    }
+                    .buttonStyle(SecondaryActionButtonStyle())
+                }
+            }
+
+            HStack {
+                Text("\(filteredDisplayedTests.count) matching tests")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if hasActiveTestFilters {
+                    Button("Clear Filters") {
+                        clearTestFilters()
+                    }
+                    .font(.caption)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+
     var editingBannerSection: some View {
         Group {
             if let editingTest, loadedTestMode == .editing {
@@ -520,16 +624,16 @@ extension ContentView {
 
                 Spacer()
 
-                if !displayedTests.isEmpty {
+                if !filteredDisplayedTests.isEmpty {
                     Menu {
                         Button("Export All as JSON") {
-                            exportAllSavedTestsJSON(displayedTests)
+                            exportAllSavedTestsJSON(filteredDisplayedTests)
                         }
                         Button("Export All as CSV") {
-                            exportAllSavedTestsCSV(displayedTests)
+                            exportAllSavedTestsCSV(filteredDisplayedTests)
                         }
                         Button("Export All as PDF") {
-                            exportAllSavedTestsPDF(displayedTests)
+                            exportAllSavedTestsPDF(filteredDisplayedTests)
                         }
                     } label: {
                         HStack(spacing: 4) {
@@ -541,11 +645,15 @@ extension ContentView {
                 }
             }
 
-            if displayedTests.isEmpty {
-                Text("No tests saved yet.")
+            if !displayedTests.isEmpty {
+                testFiltersSection
+            }
+
+            if filteredDisplayedTests.isEmpty {
+                Text(displayedTests.isEmpty ? "No tests saved yet." : "No tests match the current filters.")
                     .foregroundColor(.secondary)
             } else {
-                ForEach(displayedTests) { test in
+                ForEach(filteredDisplayedTests) { test in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .center, spacing: 8) {
                             Text(test.resolvedTestName).bold()

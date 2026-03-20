@@ -46,6 +46,36 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum TestSportFilter: String, CaseIterable, Identifiable {
+    case all
+    case running
+    case cycling
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all:
+            return "All"
+        case .running:
+            return "Running"
+        case .cycling:
+            return "Cycling"
+        }
+    }
+
+    var sport: Sport? {
+        switch self {
+        case .all:
+            return nil
+        case .running:
+            return .running
+        case .cycling:
+            return .cycling
+        }
+    }
+}
+
 enum ExportError: LocalizedError {
     case encodingFailed
 
@@ -117,4 +147,5 @@ struct ShareItem: Identifiable {
     let id = UUID()
     let url: URL
 }
+
 
