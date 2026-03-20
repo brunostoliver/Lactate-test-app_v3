@@ -160,9 +160,21 @@ struct ContentView: View {
                 NavigationView {
                     editorScrollView
                         .navigationBarTitle(navigationTitle, displayMode: .inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                AppLogoToolbarImage()
+                            }
+                        }
                 }
             } else {
                 editorScrollView
+                    .toolbar {
+                        if screenMode == .detail {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                AppLogoToolbarImage()
+                            }
+                        }
+                    }
             }
         }
         .preferredColorScheme(appearanceMode.colorScheme)
@@ -220,6 +232,10 @@ struct ContentView: View {
                             editorDestination = nil
                         }
                     }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AppLogoToolbarImage()
+                    }
                 }
             }
         }
@@ -267,6 +283,10 @@ struct ContentView: View {
                         Button("Cancel") {
                             activeFilterDatePicker = nil
                         }
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AppLogoToolbarImage()
                     }
                 }
             }

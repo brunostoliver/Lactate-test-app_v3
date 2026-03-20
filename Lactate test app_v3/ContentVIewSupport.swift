@@ -1,5 +1,15 @@
 import SwiftUI
 
+struct AppLogoToolbarImage: View {
+    var body: some View {
+        Image("AppLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 61, height: 61)
+            .accessibilityLabel("App logo")
+    }
+}
+
 enum GraphXAxis: String, CaseIterable, Identifiable {
     case power
     case heartRate

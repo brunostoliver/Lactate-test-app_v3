@@ -84,11 +84,7 @@ struct AthleteListView: View {
             .navigationTitle("Athletes")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Image("AppLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 36, height: 36)
-                        .accessibilityLabel("App logo")
+                    AppLogoToolbarImage()
                 }
             }
             .preferredColorScheme(appearanceMode.colorScheme)
@@ -106,6 +102,10 @@ struct AthleteListView: View {
                             Button("Cancel") {
                                 showNewAthleteSheet = false
                             }
+                        }
+
+                        ToolbarItem(placement: .topBarTrailing) {
+                            AppLogoToolbarImage()
                         }
 
                         ToolbarItem(placement: .confirmationAction) {
