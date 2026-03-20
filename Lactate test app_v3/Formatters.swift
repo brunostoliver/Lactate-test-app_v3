@@ -10,6 +10,15 @@ enum UnitPreference: String, CaseIterable, Identifiable {
     case imperial
 
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .metric:
+            return "Metric"
+        case .imperial:
+            return "Imperial"
+        }
+    }
 }
 
 struct PaceFormatter {
@@ -44,3 +53,5 @@ struct SpeedFormatter {
         return String(format: "%.1f %@", speed, unitString)
     }
 }
+
+

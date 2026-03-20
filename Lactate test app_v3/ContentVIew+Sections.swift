@@ -3,17 +3,6 @@ import SwiftUI
 extension ContentView {
     // MARK: - Sections
 
-    var unitsPicker: some View {
-        Picker("Units", selection: $unitPreference) {
-            ForEach(UnitPreference.allCases) { unit in
-                Text(unit == .metric ? "Metric" : "Imperial")
-                    .tag(unit)
-            }
-        }
-        .pickerStyle(SegmentedPickerStyle())
-        .frame(width: 220)
-    }
-
     var editingBannerSection: some View {
         Group {
             if let editingTest {

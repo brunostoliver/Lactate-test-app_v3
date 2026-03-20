@@ -4,6 +4,7 @@ struct AthleteListView: View {
     @ObservedObject var store: SwiftDataTestsStore
 
     @AppStorage("appearanceMode") private var appearanceModeRawValue: String = AppearanceMode.system.rawValue
+    @AppStorage("unitPreference") private var unitPreferenceRawValue: String = UnitPreference.metric.rawValue
 
     @State private var newAthleteName = ""
     @State private var showNewAthleteSheet = false
@@ -11,6 +12,18 @@ struct AthleteListView: View {
 
     private var appearanceMode: AppearanceMode {
         AppearanceMode(rawValue: appearanceModeRawValue) ?? .system
+    }
+
+    private var unitPreference: UnitPreference {
+        get { UnitPreference(rawValue: unitPreferenceRawValue) ?? .metric }
+        nonmutating set { unitPreferenceRawValue = newValue.rawValue }
+    }
+
+    private var unitPreferenceBinding: Binding<UnitPreference> {
+        Binding(
+            get: { unitPreference },
+            set: { unitPreference = $0 }
+        )
     }
 
     var body: some View {
@@ -54,6 +67,15 @@ struct AthleteListView: View {
                     Picker("Appearance", selection: $appearanceModeRawValue) {
                         ForEach(AppearanceMode.allCases) { mode in
                             Text(mode.title).tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section("Units") {
+                    Picker("Units", selection: unitPreferenceBinding) {
+                        ForEach(UnitPreference.allCases) { unit in
+                            Text(unit.title).tag(unit)
                         }
                     }
                     .pickerStyle(.segmented)

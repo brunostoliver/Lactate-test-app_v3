@@ -14,7 +14,7 @@ struct ContentView: View {
     let selectedAthlete: Athlete?
     let showsNavigationChrome: Bool
 
-    @State var unitPreference: UnitPreference = .metric
+    @AppStorage("unitPreference") var unitPreferenceRawValue: String = UnitPreference.metric.rawValue
     @AppStorage("appearanceMode") var appearanceModeRawValue: String = AppearanceMode.system.rawValue
 
     @State var draft = LactateTestDraft()
@@ -48,7 +48,6 @@ struct ContentView: View {
                 NavigationView {
                     editorScrollView
                         .navigationBarTitle(navigationTitle, displayMode: .inline)
-                        .navigationBarItems(trailing: unitsPicker)
                 }
             } else {
                 editorScrollView
@@ -101,6 +100,10 @@ struct ContentView: View {
 
     var appearanceMode: AppearanceMode {
         AppearanceMode(rawValue: appearanceModeRawValue) ?? .system
+    }
+
+    var unitPreference: UnitPreference {
+        UnitPreference(rawValue: unitPreferenceRawValue) ?? .metric
     }
 
     var currentSeriesLabel: String {
