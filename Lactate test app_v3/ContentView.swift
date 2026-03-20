@@ -122,6 +122,10 @@ struct ContentView: View {
                     athleteID: $0.athleteID,
                     athleteName: $0.athleteName,
                     testName: $0.resolvedTestName,
+                    temperatureCelsius: $0.temperatureCelsius,
+                    temperatureUnit: $0.temperatureUnit,
+                    humidityPercent: $0.humidityPercent,
+                    terrain: $0.terrain ?? "",
                     sport: $0.sport,
                     date: $0.date,
                     steps: $0.steps
@@ -502,6 +506,10 @@ struct ContentView: View {
             athleteID: test.athleteID,
             athleteName: test.athleteName,
             testName: test.resolvedTestName,
+            temperatureCelsius: test.temperatureCelsius,
+            temperatureUnit: test.temperatureUnit,
+            humidityPercent: test.humidityPercent,
+            terrain: test.terrain ?? "",
             sport: test.sport,
             date: test.date,
             steps: test.steps
@@ -726,6 +734,68 @@ struct ContentView: View {
         }
     }
 
+    func temperatureStringBinding() -> Binding<String> {
+        Binding(
+            get: {
+                guard let celsius = draft.temperatureCelsius else { return "" }
+
+                let displayedValue: Double
+                switch draft.temperatureUnit {
+                case .celsius:
+                    displayedValue = celsius
+                case .fahrenheit:
+                    displayedValue = (celsius * 9.0 / 5.0) + 32.0
+                }
+
+                return String(format: "%.1f", displayedValue)
+            },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !trimmed.isEmpty else {
+                    draft.temperatureCelsius = nil
+                    return
+                }
+
+                guard let enteredValue = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else {
+                    draft.temperatureCelsius = nil
+                    return
+                }
+
+                switch draft.temperatureUnit {
+                case .celsius:
+                    draft.temperatureCelsius = enteredValue
+                case .fahrenheit:
+                    draft.temperatureCelsius = (enteredValue - 32.0) * 5.0 / 9.0
+                }
+            }
+        )
+    }
+
+    func humidityStringBinding() -> Binding<String> {
+        Binding(
+            get: {
+                guard let humidity = draft.humidityPercent else { return "" }
+                return String(format: "%.0f", humidity)
+            },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !trimmed.isEmpty else {
+                    draft.humidityPercent = nil
+                    return
+                }
+
+                guard let enteredValue = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else {
+                    draft.humidityPercent = nil
+                    return
+                }
+
+                draft.humidityPercent = max(0.0, min(100.0, enteredValue))
+            }
+        )
+    }
+
     func applySelectedAthleteIfNeeded() {
         guard !didApplySelectedAthlete else { return }
         didApplySelectedAthlete = true
@@ -745,6 +815,7 @@ struct ContentView: View {
 #Preview {
     ContentView(store: SwiftDataTestsStore())
 }
+
 
 
 

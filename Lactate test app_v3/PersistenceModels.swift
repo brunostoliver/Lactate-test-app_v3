@@ -35,6 +35,10 @@ final class LactateTestEntity {
     @Attribute(.unique) var id: UUID
     var athleteName: String
     var testName: String?
+    var temperatureCelsius: Double?
+    var temperatureUnitRawValue: String?
+    var humidityPercent: Double?
+    var terrain: String?
     var sportRawValue: String
     var date: Date
 
@@ -47,6 +51,10 @@ final class LactateTestEntity {
         id: UUID = UUID(),
         athleteName: String,
         testName: String? = nil,
+        temperatureCelsius: Double? = nil,
+        temperatureUnitRawValue: String? = TemperatureUnit.celsius.rawValue,
+        humidityPercent: Double? = nil,
+        terrain: String? = nil,
         sportRawValue: String,
         date: Date,
         athlete: AthleteEntity? = nil,
@@ -55,6 +63,10 @@ final class LactateTestEntity {
         self.id = id
         self.athleteName = athleteName
         self.testName = testName
+        self.temperatureCelsius = temperatureCelsius
+        self.temperatureUnitRawValue = temperatureUnitRawValue
+        self.humidityPercent = humidityPercent
+        self.terrain = terrain
         self.sportRawValue = sportRawValue
         self.date = date
         self.athlete = athlete
@@ -64,6 +76,11 @@ final class LactateTestEntity {
     var sport: Sport {
         get { Sport(rawValue: sportRawValue) ?? .running }
         set { sportRawValue = newValue.rawValue }
+    }
+
+    var temperatureUnit: TemperatureUnit {
+        get { TemperatureUnit(rawValue: temperatureUnitRawValue ?? TemperatureUnit.celsius.rawValue) ?? .celsius }
+        set { temperatureUnitRawValue = newValue.rawValue }
     }
 }
 

@@ -63,6 +63,10 @@ extension LactateTest {
             athleteID: entity.athlete?.id,
             athleteName: entity.athleteName,
             testName: entity.testName,
+            temperatureCelsius: entity.temperatureCelsius,
+            temperatureUnit: entity.temperatureUnit,
+            humidityPercent: entity.humidityPercent,
+            terrain: entity.terrain,
             sport: entity.sport,
             date: entity.date,
             steps: mappedSteps
@@ -74,6 +78,10 @@ extension LactateTest {
             id: id,
             athleteName: athleteName,
             testName: testName,
+            temperatureCelsius: temperatureCelsius,
+            temperatureUnitRawValue: temperatureUnit.rawValue,
+            humidityPercent: humidityPercent,
+            terrain: terrain,
             sportRawValue: sport.rawValue,
             date: date
         )

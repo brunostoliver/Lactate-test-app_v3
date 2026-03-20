@@ -93,6 +93,32 @@ extension ContentView {
 
             Divider()
 
+            Text("Environment")
+                .font(.headline)
+
+            HStack(spacing: 12) {
+                TextField("Temperature", text: temperatureStringBinding())
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                Picker("Temp Unit", selection: $draft.temperatureUnit) {
+                    ForEach(TemperatureUnit.allCases) { unit in
+                        Text(unit.title).tag(unit)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(maxWidth: 120)
+            }
+
+            TextField("Humidity (%)", text: humidityStringBinding())
+                .keyboardType(.decimalPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            TextField("Place / terrain (track, road, treadmill, etc.)", text: $draft.terrain)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            Divider()
+
             Text("Steps")
                 .font(.headline)
 

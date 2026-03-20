@@ -14,6 +14,22 @@ enum Sport: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
+enum TemperatureUnit: String, CaseIterable, Identifiable, Codable {
+    case celsius
+    case fahrenheit
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .celsius:
+            return "C"
+        case .fahrenheit:
+            return "F"
+        }
+    }
+}
+
 struct Athlete: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
@@ -74,6 +90,10 @@ struct LactateTest: Identifiable, Codable, Hashable {
     var athleteID: UUID?
     var athleteName: String
     var testName: String?
+    var temperatureCelsius: Double?
+    var temperatureUnit: TemperatureUnit
+    var humidityPercent: Double?
+    var terrain: String?
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
@@ -83,6 +103,10 @@ struct LactateTest: Identifiable, Codable, Hashable {
         athleteID: UUID? = nil,
         athleteName: String,
         testName: String? = nil,
+        temperatureCelsius: Double? = nil,
+        temperatureUnit: TemperatureUnit = .celsius,
+        humidityPercent: Double? = nil,
+        terrain: String? = nil,
         sport: Sport,
         date: Date,
         steps: [LactateStep]
@@ -91,6 +115,10 @@ struct LactateTest: Identifiable, Codable, Hashable {
         self.athleteID = athleteID
         self.athleteName = athleteName
         self.testName = testName
+        self.temperatureCelsius = temperatureCelsius
+        self.temperatureUnit = temperatureUnit
+        self.humidityPercent = humidityPercent
+        self.terrain = terrain
         self.sport = sport
         self.date = date
         self.steps = steps
@@ -117,6 +145,10 @@ struct LactateTestDraft {
     var athleteID: UUID?
     var athleteName: String
     var testName: String
+    var temperatureCelsius: Double?
+    var temperatureUnit: TemperatureUnit
+    var humidityPercent: Double?
+    var terrain: String
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
@@ -125,6 +157,10 @@ struct LactateTestDraft {
         athleteID: UUID? = nil,
         athleteName: String = "",
         testName: String = "",
+        temperatureCelsius: Double? = nil,
+        temperatureUnit: TemperatureUnit = .celsius,
+        humidityPercent: Double? = nil,
+        terrain: String = "",
         sport: Sport = .running,
         date: Date = Date(),
         steps: [LactateStep] = [LactateStep.emptyStep(stepIndex: 1)]
@@ -132,6 +168,10 @@ struct LactateTestDraft {
         self.athleteID = athleteID
         self.athleteName = athleteName
         self.testName = testName
+        self.temperatureCelsius = temperatureCelsius
+        self.temperatureUnit = temperatureUnit
+        self.humidityPercent = humidityPercent
+        self.terrain = terrain
         self.sport = sport
         self.date = date
         self.steps = steps
@@ -146,6 +186,10 @@ struct LactateTestDraft {
             athleteID: athleteID,
             athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Athlete" : athleteName,
             testName: LactateTest.normalizedTestName(testName, sport: sport, date: date),
+            temperatureCelsius: temperatureCelsius,
+            temperatureUnit: temperatureUnit,
+            humidityPercent: humidityPercent,
+            terrain: terrain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : terrain.trimmingCharacters(in: .whitespacesAndNewlines),
             sport: sport,
             date: date,
             steps: steps
@@ -156,4 +200,5 @@ struct LactateTestDraft {
         self = LactateTestDraft()
     }
 }
+
 
