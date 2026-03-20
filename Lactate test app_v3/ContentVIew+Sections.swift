@@ -16,7 +16,7 @@ extension ContentView {
                             .background(Color.orange.opacity(0.25))
                             .cornerRadius(6)
 
-                        Text("Viewing loaded saved test - \(editingTest.athleteName)")
+                        Text("Viewing loaded saved test - \(editingTest.resolvedTestName)")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                     }
@@ -59,19 +59,17 @@ extension ContentView {
                     .foregroundColor(.secondary)
             }
 
-            if let selectedAthlete {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Athlete")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(selectedAthlete.name)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                }
-            } else {
+            if selectedAthlete == nil {
                 TextField("Athlete name", text: $draft.athleteName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
+
+            TextField(
+                "Test name",
+                text: $draft.testName,
+                prompt: Text(draft.resolvedTestName)
+            )
+            .textFieldStyle(RoundedBorderTextFieldStyle())
 
             Picker("Sport", selection: $draft.sport) {
                 ForEach(Sport.allCases) { s in
@@ -513,8 +511,8 @@ extension ContentView {
                 ForEach(displayedTests) { test in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .center, spacing: 8) {
-                            Text(test.athleteName).bold()
-                            Text(test.sport.rawValue.capitalized)
+                            Text(test.resolvedTestName).bold()
+                            Text(test.athleteName)
                             Text(shortDateString(test.date))
 
                             if isLoaded(test) {

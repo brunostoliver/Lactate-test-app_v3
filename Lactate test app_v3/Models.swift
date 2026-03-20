@@ -73,6 +73,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
     let id: UUID
     var athleteID: UUID?
     var athleteName: String
+    var testName: String?
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
@@ -81,6 +82,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         id: UUID = UUID(),
         athleteID: UUID? = nil,
         athleteName: String,
+        testName: String? = nil,
         sport: Sport,
         date: Date,
         steps: [LactateStep]
@@ -88,15 +90,33 @@ struct LactateTest: Identifiable, Codable, Hashable {
         self.id = id
         self.athleteID = athleteID
         self.athleteName = athleteName
+        self.testName = testName
         self.sport = sport
         self.date = date
         self.steps = steps
+    }
+
+    var resolvedTestName: String {
+        Self.normalizedTestName(testName, sport: sport, date: date)
+    }
+
+    static func normalizedTestName(_ rawName: String?, sport: Sport, date: Date) -> String {
+        let trimmed = rawName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty {
+            return trimmed
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return "\(sport.rawValue.capitalized) - \(formatter.string(from: date))"
     }
 }
 
 struct LactateTestDraft {
     var athleteID: UUID?
     var athleteName: String
+    var testName: String
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
@@ -104,21 +124,28 @@ struct LactateTestDraft {
     init(
         athleteID: UUID? = nil,
         athleteName: String = "",
+        testName: String = "",
         sport: Sport = .running,
         date: Date = Date(),
         steps: [LactateStep] = [LactateStep.emptyStep(stepIndex: 1)]
     ) {
         self.athleteID = athleteID
         self.athleteName = athleteName
+        self.testName = testName
         self.sport = sport
         self.date = date
         self.steps = steps
+    }
+
+    var resolvedTestName: String {
+        LactateTest.normalizedTestName(testName, sport: sport, date: date)
     }
 
     func asLactateTest() -> LactateTest {
         LactateTest(
             athleteID: athleteID,
             athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Athlete" : athleteName,
+            testName: LactateTest.normalizedTestName(testName, sport: sport, date: date),
             sport: sport,
             date: date,
             steps: steps
@@ -129,5 +156,4 @@ struct LactateTestDraft {
         self = LactateTestDraft()
     }
 }
-
 

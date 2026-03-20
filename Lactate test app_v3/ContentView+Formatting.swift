@@ -84,8 +84,9 @@ extension ContentView {
     }
 
     func testLabel(for test: LactateTest) -> String {
-        "\(test.athleteName) (\(shortDateString(test.date)))"
+        test.resolvedTestName
     }
 
 }
+
 

@@ -84,7 +84,7 @@ struct ContentView: View {
                 testPendingDeletion = nil
             }
         } message: { test in
-            Text("This will permanently delete \(test.athleteName) from saved tests.")
+            Text("This will permanently delete \(test.resolvedTestName) from saved tests.")
         }
         .alert("Export Failed", isPresented: $showExportErrorAlert) {
             Button("OK", role: .cancel) { }
@@ -107,11 +107,7 @@ struct ContentView: View {
     }
 
     var currentSeriesLabel: String {
-        let trimmed = draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            return "Current Input"
-        }
-        return "\(trimmed) (\(shortDateString(draft.date)))"
+        draft.resolvedTestName
     }
 
     var navigationTitle: String {
@@ -328,6 +324,7 @@ struct ContentView: View {
         draft = LactateTestDraft(
             athleteID: test.athleteID,
             athleteName: test.athleteName,
+            testName: test.resolvedTestName,
             sport: test.sport,
             date: test.date,
             steps: test.steps

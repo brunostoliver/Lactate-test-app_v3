@@ -87,6 +87,7 @@ final class SwiftDataTestsStore: ObservableObject {
             )
 
             existing.athleteName = athlete.name
+            existing.testName = updatedTest.resolvedTestName
             existing.athlete = athlete
             existing.sport = updatedTest.sport
             existing.date = updatedTest.date
@@ -119,6 +120,7 @@ final class SwiftDataTestsStore: ObservableObject {
             athleteName: draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "Untitled Athlete"
                 : draft.athleteName,
+            testName: draft.resolvedTestName,
             sport: draft.sport,
             date: draft.date,
             steps: draft.steps
@@ -168,10 +170,11 @@ final class SwiftDataTestsStore: ObservableObject {
             }
     }
 
-    func appendAthlete(name: String) {
+    @discardableResult
+    func appendAthlete(name: String) -> Athlete? {
         guard let modelContext else {
             print("SwiftDataTestsStore is not configured with a ModelContext.")
-            return
+            return nil
         }
 
         let normalizedName = MigrationService.normalizedAthleteName(name)
@@ -180,17 +183,19 @@ final class SwiftDataTestsStore: ObservableObject {
             let descriptor = FetchDescriptor<AthleteEntity>()
             let entities = try modelContext.fetch(descriptor)
 
-            if entities.contains(where: { $0.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame }) {
+            if let existing = entities.first(where: { $0.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame }) {
                 reload()
-                return
+                return Athlete(entity: existing)
             }
 
             let athlete = AthleteEntity(name: normalizedName)
             modelContext.insert(athlete)
             try modelContext.save()
             reload()
+            return Athlete(entity: athlete)
         } catch {
             print("Failed to save athlete: \(error)")
+            return nil
         }
     }
 

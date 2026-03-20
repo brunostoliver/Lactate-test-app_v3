@@ -34,6 +34,7 @@ final class AthleteEntity {
 final class LactateTestEntity {
     @Attribute(.unique) var id: UUID
     var athleteName: String
+    var testName: String?
     var sportRawValue: String
     var date: Date
 
@@ -45,6 +46,7 @@ final class LactateTestEntity {
     init(
         id: UUID = UUID(),
         athleteName: String,
+        testName: String? = nil,
         sportRawValue: String,
         date: Date,
         athlete: AthleteEntity? = nil,
@@ -52,6 +54,7 @@ final class LactateTestEntity {
     ) {
         self.id = id
         self.athleteName = athleteName
+        self.testName = testName
         self.sportRawValue = sportRawValue
         self.date = date
         self.athlete = athlete

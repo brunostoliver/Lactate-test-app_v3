@@ -62,6 +62,7 @@ extension LactateTest {
             id: entity.id,
             athleteID: entity.athlete?.id,
             athleteName: entity.athleteName,
+            testName: entity.testName,
             sport: entity.sport,
             date: entity.date,
             steps: mappedSteps
@@ -72,6 +73,7 @@ extension LactateTest {
         let entity = LactateTestEntity(
             id: id,
             athleteName: athleteName,
+            testName: testName,
             sportRawValue: sport.rawValue,
             date: date
         )
