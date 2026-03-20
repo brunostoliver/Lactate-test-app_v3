@@ -3,9 +3,20 @@ import SwiftUI
 extension ContentView {
     // MARK: - Sections
 
+    var enterNewTestSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                editorDestination = EditorDestination(test: nil)
+            } label: {
+                Label("Enter New Test", systemImage: "square.and.pencil")
+            }
+            .buttonStyle(FilledActionButtonStyle())
+        }
+    }
+
     var editingBannerSection: some View {
         Group {
-            if let editingTest {
+            if let editingTest, loadedTestMode == .editing {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Text("Loaded")
@@ -41,7 +52,7 @@ extension ContentView {
     var formSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(editingTest == nil ? "Test Details" : "Loaded Saved Test")
+                Text(loadedTestMode == .editing ? "Loaded Saved Test" : "Test Details")
                     .font(.headline)
 
                 Spacer()
@@ -53,7 +64,7 @@ extension ContentView {
                 }
             }
 
-            if editingTest != nil {
+            if loadedTestMode == .editing {
                 Text("This saved test is loaded into the form. Tap Update Test to save any changes.")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -533,7 +544,7 @@ extension ContentView {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
                                 Button(action: {
-                                    loadTestIntoDraft(test)
+                                    editorDestination = EditorDestination(test: test)
                                 }) {
                                     Label("Load/Edit", systemImage: "square.and.pencil")
                                 }
