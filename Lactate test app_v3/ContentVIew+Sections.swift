@@ -799,33 +799,13 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
 
-            Text("Sample Tests")
-                .font(.headline)
-
-            Text("Temporary utilities for loading example data.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            Button(action: loadSampleTest1) {
-                HStack {
-                    Image(systemName: "doc.badge.plus")
-                    Text("Load Test Sample 1")
-                }
+            Button(action: {
+                showSampleTestPicker = true
+            }) {
+                Label("Browse Sample Tests", systemImage: "link")
+                    .font(.caption)
             }
-
-            Button(action: loadSampleTest2) {
-                HStack {
-                    Image(systemName: "doc.badge.plus")
-                    Text("Load Test Sample 2")
-                }
-            }
-
-            Button(action: loadSampleTest3) {
-                HStack {
-                    Image(systemName: "doc.badge.plus")
-                    Text("Load Test Sample 3")
-                }
-            }
+            .buttonStyle(.plain)
         }
     }
 }

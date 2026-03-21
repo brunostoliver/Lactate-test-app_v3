@@ -125,6 +125,7 @@ struct ContentView: View {
     @State var shouldPreserveSavedTestsViewport = false
     @State var scrollView: UIScrollView? = nil
     @State var editorDestination: EditorDestination? = nil
+    @State var showSampleTestPicker: Bool = false
 
     init(
         store: SwiftDataTestsStore,
@@ -284,6 +285,16 @@ struct ContentView: View {
                 }
             }
             .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showSampleTestPicker) {
+            SampleTestPickerView(
+                onSelect: { sample in
+                    loadSampleTest(sample)
+                },
+                onLoadAll: {
+                    loadAllSampleTests()
+                }
+            )
         }
         .onAppear {
             applySelectedAthleteIfNeeded()
@@ -776,76 +787,57 @@ struct ContentView: View {
 
     // MARK: - Sample Tests
 
-    func loadSampleTest1() {
-        loadCyclingSample(
-            athleteName: "Sample Test 1",
-            dateString: "04-29-23",
-            lactates: [1.7, 1.3, 1.9, 2.4, 3.4, 7.1],
-            heartRates: [114, 124, 127, 133, 138, 147],
-            powers: [127, 124, 142, 162, 183, 204]
-        )
+    func loadSampleTest(_ sample: SampleTestTemplate) {
+        draft = sampleDraft(from: sample)
+
+        editingTest = nil
+        loadedTestMode = nil
+        graphXAxis = .power
+        selectedGraphPoint = nil
     }
 
-    func loadSampleTest2() {
-        loadCyclingSample(
-            athleteName: "Sample Test 2",
-            dateString: "04-04-23",
-            lactates: [1.6, 1.7, 1.8, 3.2, 3.7, 7.2],
-            heartRates: [107, 112, 119, 129, 132, 141],
-            powers: [118, 122, 143, 163, 183, 209]
-        )
+    func loadAllSampleTests() {
+        for sample in SampleTestCatalog.all {
+            store.appendTest(sampleDraft(from: sample).asLactateTest())
+        }
     }
 
-    func loadSampleTest3() {
-        loadCyclingSample(
-            athleteName: "Sample Test 3",
-            dateString: "02-25-23",
-            lactates: [1.9, 1.7, 2.6, 3.8, 5.6],
-            heartRates: [115, 119, 127, 136, 141],
-            powers: [125, 122, 143, 164, 183]
-        )
-    }
-
-    func loadCyclingSample(
-        athleteName: String,
-        dateString: String,
-        lactates: [Double],
-        heartRates: [Int],
-        powers: [Int]
-    ) {
+    func sampleDraft(from sample: SampleTestTemplate) -> LactateTestDraft {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd-yy"
+        formatter.dateFormat = "yyyy-MM-dd"
 
-        let count = min(lactates.count, heartRates.count, powers.count)
-        var loadedSteps: [LactateStep] = []
-
-        for index in 0..<count {
-            loadedSteps.append(
-                LactateStep(
-                    stepIndex: index + 1,
-                    lactate: lactates[index],
-                    avgHeartRate: heartRates[index],
-                    runningPaceSecondsPerKm: nil,
-                    cyclingSpeedKmh: nil,
-                    powerWatts: powers[index]
-                )
+        let loadedSteps = sample.steps.enumerated().map { index, step in
+            LactateStep(
+                stepIndex: index + 1,
+                lactate: step.lactate,
+                avgHeartRate: step.avgHeartRate,
+                runningPaceSecondsPerKm: parseRunningPace(step.runningPace),
+                cyclingSpeedKmh: nil,
+                powerWatts: step.power
             )
         }
 
         let targetAthleteID = selectedAthlete?.id
-        let targetAthleteName = selectedAthlete?.name ?? athleteName
+        let targetAthleteName = selectedAthlete?.name ?? "Untitled Athlete"
 
-        draft = LactateTestDraft(
+        return LactateTestDraft(
             athleteID: targetAthleteID,
             athleteName: targetAthleteName,
-            sport: .cycling,
-            date: formatter.date(from: dateString) ?? Date(),
+            sport: sample.sport,
+            date: formatter.date(from: sample.dateString) ?? Date(),
             steps: loadedSteps.isEmpty ? [LactateStep.emptyStep(stepIndex: 1)] : loadedSteps
         )
+    }
 
-        editingTest = nil
-        graphXAxis = .power
-        selectedGraphPoint = nil
+    func parseRunningPace(_ value: String?) -> Int? {
+        guard let value else { return nil }
+        let parts = value.split(separator: ":")
+        guard parts.count == 2,
+              let minutes = Int(parts[0]),
+              let seconds = Int(parts[1]) else {
+            return nil
+        }
+        return (minutes * 60) + seconds
     }
 
     // MARK: - File Helpers
