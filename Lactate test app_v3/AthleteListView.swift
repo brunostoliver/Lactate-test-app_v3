@@ -46,11 +46,13 @@ struct AthleteListView: View {
                         } else {
                             ForEach(store.athletes) { athlete in
                                 NavigationLink {
-                                ContentView(
-                                    store: store,
-                                    selectedAthlete: athlete,
-                                    showsNavigationChrome: false
+                                    ContentView(
+                                        store: store,
+                                        selectedAthlete: athlete,
+                                        showsNavigationChrome: false
                                     )
+                                    .navigationTitle(athlete.name)
+                                    .navigationBarTitleDisplayMode(.inline)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(athlete.name)
@@ -82,7 +84,7 @@ struct AthleteListView: View {
                     }
                 }
             }
-            .appPageHeader(title: "Athletes")
+            .navigationTitle("Athletes")
             .preferredColorScheme(appearanceMode.colorScheme)
             .sheet(isPresented: $showNewAthleteSheet) {
                 NavigationStack {
@@ -91,6 +93,8 @@ struct AthleteListView: View {
                             TextField("Athlete name", text: $newAthleteName)
                         }
                     }
+                    .navigationTitle("New Athlete")
+                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Cancel") {
@@ -109,7 +113,6 @@ struct AthleteListView: View {
                         }
                     }
                 }
-                .appPageHeader(title: "New Athlete")
             }
             .navigationDestination(item: $selectedAthleteForNewTest) { athlete in
                 ContentView(
@@ -117,6 +120,8 @@ struct AthleteListView: View {
                     selectedAthlete: athlete,
                     showsNavigationChrome: false
                 )
+                .navigationTitle(athlete.name)
+                .navigationBarTitleDisplayMode(.inline)
             }
         }
     }

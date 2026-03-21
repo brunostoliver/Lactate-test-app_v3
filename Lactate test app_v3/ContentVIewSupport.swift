@@ -1,46 +1,5 @@
 import SwiftUI
 
-struct AppLogoToolbarImage: View {
-    var body: some View {
-        Image("AppLogo")
-            .renderingMode(.original)
-            .resizable()
-            .scaledToFit()
-            .frame(height: 32)
-            .accessibilityLabel("App logo")
-    }
-}
-
-struct AppPageHeaderModifier: ViewModifier {
-    let title: String
-
-    func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Spacer()
-                    AppLogoToolbarImage()
-                }
-
-                Text(title)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
-            .padding(.bottom, 8)
-            .background(Color.clear)
-        }
-    }
-}
-
-extension View {
-    func appPageHeader(title: String) -> some View {
-        modifier(AppPageHeaderModifier(title: title))
-    }
-}
-
 enum GraphXAxis: String, CaseIterable, Identifiable {
     case power
     case heartRate

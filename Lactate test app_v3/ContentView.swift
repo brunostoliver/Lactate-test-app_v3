@@ -156,13 +156,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        Group {
-            if showsNavigationChrome || screenMode == .detail {
-                mainContent.appPageHeader(title: navigationTitle)
-            } else {
-                mainContent
-            }
-        }
+        mainContent
         .preferredColorScheme(appearanceMode.colorScheme)
         .fullScreenCover(isPresented: $showFullScreenChart) {
             FullScreenLactateChartView(
@@ -215,6 +209,8 @@ struct ContentView: View {
                     screenMode: .editor,
                     initialEditingTest: destination.test
                 )
+                .navigationTitle(destination.test == nil ? "New Test" : "View/Edit")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") {
@@ -223,7 +219,6 @@ struct ContentView: View {
                     }
                 }
             }
-            .appPageHeader(title: destination.test == nil ? "New Test" : "View/Edit")
         }
         .sheet(item: $activeFilterDatePicker) { picker in
             NavigationStack {
@@ -272,7 +267,6 @@ struct ContentView: View {
                     }
                 }
             }
-            .appPageHeader(title: picker == .start ? "Start Date" : "End Date")
             .presentationDetents([.medium])
         }
         .onAppear {
@@ -285,6 +279,7 @@ struct ContentView: View {
         if showsNavigationChrome {
             NavigationView {
                 editorScrollView
+                    .navigationBarTitle(navigationTitle, displayMode: .inline)
             }
         } else {
             editorScrollView
