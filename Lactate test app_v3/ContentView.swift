@@ -115,6 +115,7 @@ struct ContentView: View {
     @State var shareItem: ShareItem? = nil
     @State var exportErrorMessage: String? = nil
     @State var showExportErrorAlert: Bool = false
+    @State var showComparisonSportMismatchAlert: Bool = false
     @State var didApplySelectedAthlete = false
     @State var pendingScrollTarget: ScrollTarget? = .top
     @State var savedTestsSectionTop: CGFloat = 0
@@ -214,6 +215,11 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(exportErrorMessage ?? "An unknown export error occurred.")
+        }
+        .alert("Cannot Compare Different Sports", isPresented: $showComparisonSportMismatchAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Choose tests from the same sport to compare. Running and cycling tests cannot be compared together.")
         }
         .sheet(item: $editorDestination) { destination in
             NavigationStack {
@@ -656,10 +662,27 @@ struct ContentView: View {
         comparedTestIDs.contains(test.id)
     }
 
+    var comparisonBaseSport: Sport? {
+        editingTest?.sport
+    }
+
+    func hasMismatchedComparisonSport(_ test: LactateTest) -> Bool {
+        if let comparisonBaseSport {
+            return test.sport != comparisonBaseSport
+        }
+        return false
+    }
+
     func canAddMoreComparisons(for test: LactateTest) -> Bool {
         if isLoaded(test) || isComparisonBase(test) { return false }
         if comparedTestIDs.contains(test.id) { return true }
         return comparedTestIDs.count < 2
+    }
+
+    func isCompareActionDisabled(for test: LactateTest) -> Bool {
+        if isLoaded(test) || isComparisonBase(test) { return true }
+        if comparedTestIDs.contains(test.id) { return false }
+        return comparedTestIDs.count >= 2
     }
 
     func addComparedTest(_ test: LactateTest) {
@@ -672,6 +695,10 @@ struct ContentView: View {
             return
         }
 
+        guard test.sport == draft.sport else {
+            showComparisonSportMismatchAlert = true
+            return
+        }
         guard !isLoaded(test) else { return }
         guard !comparedTestIDs.contains(test.id) else { return }
         guard comparedTestIDs.count < 2 else { return }

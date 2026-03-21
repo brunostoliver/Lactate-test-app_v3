@@ -708,7 +708,7 @@ extension ContentView {
                                         Label("Compare", systemImage: "chart.line.uptrend.xyaxis")
                                     }
                                     .buttonStyle(SecondaryActionButtonStyle())
-                                    .disabled(!canAddMoreComparisons(for: test))
+                                    .disabled(isCompareActionDisabled(for: test))
                                 }
                             }
                         }
