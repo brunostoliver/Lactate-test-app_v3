@@ -129,6 +129,10 @@ struct ContentView: View {
     @State var showComparisonSportMismatchAlert: Bool = false
     @State var showRestingLactateInfoAlert: Bool = false
     @State var activeThresholdInfoTopic: ThresholdInfoTopic? = nil
+    @State var showAthleteProfileSheet: Bool = false
+    @State var athleteProfileName: String = ""
+    @State var athleteProfileDateOfBirth: Date? = nil
+    @State var athleteProfileGender: AthleteGender? = nil
     @State var didApplySelectedAthlete = false
     @State var pendingScrollTarget: ScrollTarget? = .top
     @State var savedTestsSectionTop: CGFloat = 0
@@ -307,6 +311,21 @@ struct ContentView: View {
                 }
             )
         }
+        .sheet(isPresented: $showAthleteProfileSheet) {
+            AthleteProfileEditorView(
+                title: "Edit Athlete",
+                confirmationTitle: "Save",
+                name: $athleteProfileName,
+                dateOfBirth: $athleteProfileDateOfBirth,
+                gender: $athleteProfileGender,
+                onSave: {
+                    saveAthleteProfile()
+                },
+                onCancel: {
+                    showAthleteProfileSheet = false
+                }
+            )
+        }
         .onAppear {
             applySelectedAthleteIfNeeded()
         }
@@ -364,7 +383,12 @@ struct ContentView: View {
     }
 
     var navigationTitle: String {
-        selectedAthlete?.name ?? "Lactate Test Intake"
+        currentSelectedAthlete?.name ?? selectedAthlete?.name ?? "Lactate Test Intake"
+    }
+
+    var currentSelectedAthlete: Athlete? {
+        guard let selectedAthlete else { return nil }
+        return store.athletes.first(where: { $0.id == selectedAthlete.id }) ?? selectedAthlete
     }
 
     var displayedTests: [LactateTest] {
@@ -454,6 +478,7 @@ struct ContentView: View {
     @ViewBuilder
     var athleteDetailContent: some View {
         if isUsingExternalComparisonDestination {
+            athleteProfileSection
             enterNewTestSection
             savedTestsSection
                 .id("savedTestsSection")
@@ -470,6 +495,7 @@ struct ContentView: View {
         if usesWideDetailAnalysisLayout {
             HStack(alignment: .top, spacing: 20) {
                 VStack(alignment: .leading, spacing: 16) {
+                    athleteProfileSection
                     enterNewTestSection
                     savedTestsSection
                         .id("savedTestsSection")
@@ -505,6 +531,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         } else {
+            athleteProfileSection
             enterNewTestSection
             savedTestsSection
                 .id("savedTestsSection")
@@ -1006,6 +1033,25 @@ struct ContentView: View {
         testSportFilter = .all
         startDateFilter = nil
         endDateFilter = nil
+    }
+
+    func beginEditingAthleteProfile() {
+        guard let athlete = currentSelectedAthlete else { return }
+        athleteProfileName = athlete.name
+        athleteProfileDateOfBirth = athlete.dateOfBirth
+        athleteProfileGender = athlete.gender
+        showAthleteProfileSheet = true
+    }
+
+    func saveAthleteProfile() {
+        guard let athlete = currentSelectedAthlete else { return }
+        store.updateAthlete(
+            id: athlete.id,
+            name: athleteProfileName,
+            dateOfBirth: athleteProfileDateOfBirth,
+            gender: athleteProfileGender
+        )
+        showAthleteProfileSheet = false
     }
 
     func deleteSingleSavedTest(_ test: LactateTest) {

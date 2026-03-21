@@ -7,6 +7,8 @@ struct AthleteListView: View {
     @AppStorage("unitPreference") private var unitPreferenceRawValue: String = UnitPreference.metric.rawValue
 
     @State private var newAthleteName = ""
+    @State private var newAthleteDateOfBirth: Date?
+    @State private var newAthleteGender: AthleteGender?
     @State private var showNewAthleteSheet = false
     @State private var selectedAthleteForNewTest: Athlete?
 
@@ -33,6 +35,8 @@ struct AthleteListView: View {
                     Section {
                         Button {
                             newAthleteName = ""
+                            newAthleteDateOfBirth = nil
+                            newAthleteGender = nil
                             showNewAthleteSheet = true
                         } label: {
                             Label("New Athlete", systemImage: "person.badge.plus")
@@ -80,39 +84,27 @@ struct AthleteListView: View {
                 .navigationTitle("Athletes")
                 .preferredColorScheme(appearanceMode.colorScheme)
                 .sheet(isPresented: $showNewAthleteSheet) {
-                    NavigationStack {
-                        HStack {
-                            Spacer(minLength: 0)
-
-                            Form {
-                                Section("New Athlete") {
-                                    TextField("Athlete name", text: $newAthleteName)
-                                }
+                    AthleteProfileEditorView(
+                        title: "New Athlete",
+                        confirmationTitle: "Create",
+                        name: $newAthleteName,
+                        dateOfBirth: $newAthleteDateOfBirth,
+                        gender: $newAthleteGender,
+                        onSave: {
+                            let trimmedName = newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if let athlete = store.appendAthlete(
+                                name: trimmedName,
+                                dateOfBirth: newAthleteDateOfBirth,
+                                gender: newAthleteGender
+                            ) {
+                                selectedAthleteForNewTest = athlete
                             }
-                            .frame(maxWidth: 560)
-
-                            Spacer(minLength: 0)
+                            showNewAthleteSheet = false
+                        },
+                        onCancel: {
+                            showNewAthleteSheet = false
                         }
-                        .navigationTitle("New Athlete")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel") {
-                                    showNewAthleteSheet = false
-                                }
-                            }
-
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Create") {
-                                    let trimmedName = newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    store.appendAthlete(name: trimmedName)
-                                    selectedAthleteForNewTest = store.athletes.first { $0.name == trimmedName }
-                                    showNewAthleteSheet = false
-                                }
-                                .disabled(newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                            }
-                        }
-                    }
+                    )
                 }
                 .navigationDestination(item: $selectedAthleteForNewTest) { athlete in
                     athleteDestination(for: athlete, size: geometry.size)

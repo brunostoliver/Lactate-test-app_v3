@@ -30,18 +30,35 @@ enum TemperatureUnit: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum AthleteGender: String, CaseIterable, Identifiable, Codable {
+    case male
+    case female
+
+    var id: String { rawValue }
+
+    var title: String {
+        rawValue.capitalized
+    }
+}
+
 struct Athlete: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
+    var dateOfBirth: Date?
+    var gender: AthleteGender?
     var createdAt: Date
 
     init(
         id: UUID = UUID(),
         name: String,
+        dateOfBirth: Date? = nil,
+        gender: AthleteGender? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
+        self.dateOfBirth = dateOfBirth
+        self.gender = gender
         self.createdAt = createdAt
     }
 }

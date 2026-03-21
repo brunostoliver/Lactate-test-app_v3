@@ -124,6 +124,8 @@ private struct AthleteSplitView: View {
     @AppStorage("unitPreference") private var unitPreferenceRawValue: String = UnitPreference.metric.rawValue
 
     @State private var newAthleteName = ""
+    @State private var newAthleteDateOfBirth: Date?
+    @State private var newAthleteGender: AthleteGender?
     @State private var showNewAthleteSheet = false
     @State private var selectedAthleteID: UUID?
     @State private var editorDestination: ContentView.EditorDestination?
@@ -255,6 +257,8 @@ private struct AthleteSplitView: View {
             Section {
                 Button {
                     newAthleteName = ""
+                    newAthleteDateOfBirth = nil
+                    newAthleteGender = nil
                     showNewAthleteSheet = true
                 } label: {
                     Label("New Athlete", systemImage: "person.badge.plus")
@@ -299,40 +303,27 @@ private struct AthleteSplitView: View {
     }
 
     private var newAthleteSheet: some View {
-        NavigationStack {
-            HStack {
-                Spacer(minLength: 0)
-
-                Form {
-                    Section("New Athlete") {
-                        TextField("Athlete name", text: $newAthleteName)
-                    }
+        AthleteProfileEditorView(
+            title: "New Athlete",
+            confirmationTitle: "Create",
+            name: $newAthleteName,
+            dateOfBirth: $newAthleteDateOfBirth,
+            gender: $newAthleteGender,
+            onSave: {
+                let trimmedName = newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let athlete = store.appendAthlete(
+                    name: trimmedName,
+                    dateOfBirth: newAthleteDateOfBirth,
+                    gender: newAthleteGender
+                ) {
+                    selectedAthleteID = athlete.id
                 }
-                .frame(maxWidth: 560)
-
-                Spacer(minLength: 0)
+                showNewAthleteSheet = false
+            },
+            onCancel: {
+                showNewAthleteSheet = false
             }
-            .navigationTitle("New Athlete")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        showNewAthleteSheet = false
-                    }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
-                        let trimmedName = newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if let athlete = store.appendAthlete(name: trimmedName) {
-                            selectedAthleteID = athlete.id
-                        }
-                        showNewAthleteSheet = false
-                    }
-                    .disabled(newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
+        )
     }
 
     private func editorDetailColumn(for athlete: Athlete, destination: ContentView.EditorDestination) -> some View {

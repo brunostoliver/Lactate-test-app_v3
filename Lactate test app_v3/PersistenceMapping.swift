@@ -13,6 +13,8 @@ extension Athlete {
         self.init(
             id: entity.id,
             name: entity.name,
+            dateOfBirth: entity.dateOfBirth,
+            gender: entity.gender,
             createdAt: entity.createdAt
         )
     }
@@ -21,6 +23,8 @@ extension Athlete {
         AthleteEntity(
             id: id,
             name: name,
+            dateOfBirth: dateOfBirth,
+            genderRawValue: gender?.rawValue,
             createdAt: createdAt
         )
     }

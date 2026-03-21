@@ -184,6 +184,11 @@ final class SwiftDataTestsStore: ObservableObject {
 
     @discardableResult
     func appendAthlete(name: String) -> Athlete? {
+        appendAthlete(name: name, dateOfBirth: nil, gender: nil)
+    }
+
+    @discardableResult
+    func appendAthlete(name: String, dateOfBirth: Date?, gender: AthleteGender?) -> Athlete? {
         guard let modelContext else {
             print("SwiftDataTestsStore is not configured with a ModelContext.")
             return nil
@@ -196,11 +201,18 @@ final class SwiftDataTestsStore: ObservableObject {
             let entities = try modelContext.fetch(descriptor)
 
             if let existing = entities.first(where: { $0.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame }) {
+                existing.dateOfBirth = dateOfBirth
+                existing.gender = gender
+                try modelContext.save()
                 reload()
                 return Athlete(entity: existing)
             }
 
-            let athlete = AthleteEntity(name: normalizedName)
+            let athlete = AthleteEntity(
+                name: normalizedName,
+                dateOfBirth: dateOfBirth,
+                genderRawValue: gender?.rawValue
+            )
             modelContext.insert(athlete)
             try modelContext.save()
             reload()
@@ -208,6 +220,42 @@ final class SwiftDataTestsStore: ObservableObject {
         } catch {
             print("Failed to save athlete: \(error)")
             return nil
+        }
+    }
+
+    func updateAthlete(
+        id: UUID,
+        name: String,
+        dateOfBirth: Date?,
+        gender: AthleteGender?
+    ) {
+        guard let modelContext else {
+            print("SwiftDataTestsStore is not configured with a ModelContext.")
+            return
+        }
+
+        let normalizedName = MigrationService.normalizedAthleteName(name)
+
+        do {
+            let descriptor = FetchDescriptor<AthleteEntity>()
+            let athletes = try modelContext.fetch(descriptor)
+
+            guard let athlete = athletes.first(where: { $0.id == id }) else {
+                return
+            }
+
+            athlete.name = normalizedName
+            athlete.dateOfBirth = dateOfBirth
+            athlete.gender = gender
+
+            for test in athlete.tests {
+                test.athleteName = normalizedName
+            }
+
+            try modelContext.save()
+            reload()
+        } catch {
+            print("Failed to update athlete: \(error)")
         }
     }
 

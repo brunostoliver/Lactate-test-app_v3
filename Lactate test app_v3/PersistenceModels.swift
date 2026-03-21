@@ -12,6 +12,8 @@ import SwiftData
 final class AthleteEntity {
     @Attribute(.unique) var id: UUID
     var name: String
+    var dateOfBirth: Date?
+    var genderRawValue: String?
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \LactateTestEntity.athlete)
@@ -20,13 +22,27 @@ final class AthleteEntity {
     init(
         id: UUID = UUID(),
         name: String,
+        dateOfBirth: Date? = nil,
+        genderRawValue: String? = nil,
         createdAt: Date = Date(),
         tests: [LactateTestEntity] = []
     ) {
         self.id = id
         self.name = name
+        self.dateOfBirth = dateOfBirth
+        self.genderRawValue = genderRawValue
         self.createdAt = createdAt
         self.tests = tests
+    }
+
+    var gender: AthleteGender? {
+        get {
+            guard let genderRawValue else { return nil }
+            return AthleteGender(rawValue: genderRawValue)
+        }
+        set {
+            genderRawValue = newValue?.rawValue
+        }
     }
 }
 

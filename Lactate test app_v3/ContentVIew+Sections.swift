@@ -4,6 +4,47 @@ extension ContentView {
     // MARK: - Sections
 
     @ViewBuilder
+    var athleteProfileSection: some View {
+        if let athlete = currentSelectedAthlete, !isEditorScreen && !isWorkspaceScreen {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Athlete Profile")
+                        .font(.headline)
+                    Spacer()
+                    Button("Edit") {
+                        beginEditingAthleteProfile()
+                    }
+                    .buttonStyle(SecondaryActionButtonStyle())
+                }
+
+                Text(athlete.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                if athlete.gender != nil || athlete.dateOfBirth != nil {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let gender = athlete.gender {
+                            Text("Gender: \(gender.title)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        if let dateOfBirth = athlete.dateOfBirth {
+                            Text("Date of Birth: \(shortDateString(dateOfBirth))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } else {
+                    Text("No profile details saved yet.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     var environmentFieldsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Environment")
