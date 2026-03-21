@@ -200,6 +200,27 @@ extension ContentView {
 
             Divider()
 
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text("Resting Lactate")
+                        .font(.headline)
+
+                    Button(action: {
+                        showRestingLactateInfoAlert = true
+                    }) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                TextField("mmol/L", text: restingLactateStringBinding())
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+
+            Divider()
+
             Text("Steps")
                 .font(.headline)
 

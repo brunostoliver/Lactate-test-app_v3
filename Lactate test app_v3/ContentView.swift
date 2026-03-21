@@ -116,6 +116,7 @@ struct ContentView: View {
     @State var exportErrorMessage: String? = nil
     @State var showExportErrorAlert: Bool = false
     @State var showComparisonSportMismatchAlert: Bool = false
+    @State var showRestingLactateInfoAlert: Bool = false
     @State var didApplySelectedAthlete = false
     @State var pendingScrollTarget: ScrollTarget? = .top
     @State var savedTestsSectionTop: CGFloat = 0
@@ -141,6 +142,7 @@ struct ContentView: View {
                     athleteID: $0.athleteID,
                     athleteName: $0.athleteName,
                     testName: $0.resolvedTestName,
+                    restingLactate: $0.restingLactate,
                     temperatureCelsius: $0.temperatureCelsius,
                     temperatureUnit: $0.temperatureUnit,
                     humidityPercent: $0.humidityPercent,
@@ -200,6 +202,11 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Choose tests from the same sport to compare. Running and cycling tests cannot be compared together.")
+        }
+        .alert("Resting Lactate", isPresented: $showRestingLactateInfoAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("This value is stored with the test but excluded from graph and threshold calculations.")
         }
         .sheet(item: $editorDestination) { destination in
             NavigationStack {
@@ -622,6 +629,7 @@ struct ContentView: View {
             athleteID: test.athleteID,
             athleteName: test.athleteName,
             testName: test.resolvedTestName,
+            restingLactate: test.restingLactate,
             temperatureCelsius: test.temperatureCelsius,
             temperatureUnit: test.temperatureUnit,
             humidityPercent: test.humidityPercent,
@@ -942,6 +950,30 @@ struct ContentView: View {
                 case .fahrenheit:
                     draft.temperatureCelsius = (enteredValue - 32.0) * 5.0 / 9.0
                 }
+            }
+        )
+    }
+
+    func restingLactateStringBinding() -> Binding<String> {
+        Binding(
+            get: {
+                guard let restingLactate = draft.restingLactate else { return "" }
+                return String(format: "%.2f", restingLactate)
+            },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !trimmed.isEmpty else {
+                    draft.restingLactate = nil
+                    return
+                }
+
+                guard let enteredValue = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else {
+                    draft.restingLactate = nil
+                    return
+                }
+
+                draft.restingLactate = max(0.0, enteredValue)
             }
         )
     }

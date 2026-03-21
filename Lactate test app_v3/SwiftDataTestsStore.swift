@@ -88,10 +88,12 @@ final class SwiftDataTestsStore: ObservableObject {
 
             existing.athleteName = athlete.name
             existing.testName = updatedTest.resolvedTestName
+            existing.restingLactate = updatedTest.restingLactate
             existing.temperatureCelsius = updatedTest.temperatureCelsius
             existing.temperatureUnit = updatedTest.temperatureUnit
             existing.humidityPercent = updatedTest.humidityPercent
             existing.terrain = updatedTest.terrain
+            existing.notes = updatedTest.notes
             existing.athlete = athlete
             existing.sport = updatedTest.sport
             existing.date = updatedTest.date
@@ -125,10 +127,12 @@ final class SwiftDataTestsStore: ObservableObject {
                 ? "Untitled Athlete"
                 : draft.athleteName,
             testName: draft.resolvedTestName,
+            restingLactate: draft.restingLactate,
             temperatureCelsius: draft.temperatureCelsius,
             temperatureUnit: draft.temperatureUnit,
             humidityPercent: draft.humidityPercent,
             terrain: draft.terrain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.terrain.trimmingCharacters(in: .whitespacesAndNewlines),
+            notes: draft.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : draft.notes.trimmingCharacters(in: .whitespacesAndNewlines),
             sport: draft.sport,
             date: draft.date,
             steps: draft.steps

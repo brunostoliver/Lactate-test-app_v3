@@ -90,6 +90,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
     var athleteID: UUID?
     var athleteName: String
     var testName: String?
+    var restingLactate: Double?
     var temperatureCelsius: Double?
     var temperatureUnit: TemperatureUnit
     var humidityPercent: Double?
@@ -104,6 +105,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         athleteID: UUID? = nil,
         athleteName: String,
         testName: String? = nil,
+        restingLactate: Double? = nil,
         temperatureCelsius: Double? = nil,
         temperatureUnit: TemperatureUnit = .celsius,
         humidityPercent: Double? = nil,
@@ -117,6 +119,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         self.athleteID = athleteID
         self.athleteName = athleteName
         self.testName = testName
+        self.restingLactate = restingLactate
         self.temperatureCelsius = temperatureCelsius
         self.temperatureUnit = temperatureUnit
         self.humidityPercent = humidityPercent
@@ -148,6 +151,7 @@ struct LactateTestDraft {
     var athleteID: UUID?
     var athleteName: String
     var testName: String
+    var restingLactate: Double?
     var temperatureCelsius: Double?
     var temperatureUnit: TemperatureUnit
     var humidityPercent: Double?
@@ -161,6 +165,7 @@ struct LactateTestDraft {
         athleteID: UUID? = nil,
         athleteName: String = "",
         testName: String = "",
+        restingLactate: Double? = nil,
         temperatureCelsius: Double? = nil,
         temperatureUnit: TemperatureUnit = .celsius,
         humidityPercent: Double? = nil,
@@ -173,6 +178,7 @@ struct LactateTestDraft {
         self.athleteID = athleteID
         self.athleteName = athleteName
         self.testName = testName
+        self.restingLactate = restingLactate
         self.temperatureCelsius = temperatureCelsius
         self.temperatureUnit = temperatureUnit
         self.humidityPercent = humidityPercent
@@ -192,6 +198,7 @@ struct LactateTestDraft {
             athleteID: athleteID,
             athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Athlete" : athleteName,
             testName: LactateTest.normalizedTestName(testName, sport: sport, date: date),
+            restingLactate: restingLactate,
             temperatureCelsius: temperatureCelsius,
             temperatureUnit: temperatureUnit,
             humidityPercent: humidityPercent,
