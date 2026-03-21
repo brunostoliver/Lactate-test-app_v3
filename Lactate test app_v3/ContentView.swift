@@ -111,6 +111,7 @@ struct ContentView: View {
     @State var activeFilterDatePicker: ActiveFilterDatePicker? = nil
     @State var testPendingDeletion: LactateTest? = nil
     @State var showDeleteSingleTestAlert: Bool = false
+    @State var showDeleteAthleteAlert: Bool = false
 
     @State var shareItem: ShareItem? = nil
     @State var exportErrorMessage: String? = nil
@@ -194,6 +195,14 @@ struct ContentView: View {
             }
         } message: { test in
             Text("This will permanently delete \(test.resolvedTestName) from saved tests.")
+        }
+        .alert("Delete this athlete?", isPresented: $showDeleteAthleteAlert) {
+            Button("Delete", role: .destructive) {
+                deleteSelectedAthlete()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will permanently delete the athlete and all associated tests.")
         }
         .alert("Export Failed", isPresented: $showExportErrorAlert) {
             Button("OK", role: .cancel) { }
@@ -384,6 +393,7 @@ struct ContentView: View {
                                     )
                                 }
                             )
+                        deleteAthleteSection
                     }
 
                     if isEditorScreen && editingTest != nil {
@@ -785,6 +795,12 @@ struct ContentView: View {
         showDeleteSingleTestAlert = false
     }
 
+    func deleteSelectedAthlete() {
+        guard let selectedAthlete else { return }
+        store.deleteAthlete(id: selectedAthlete.id)
+        dismiss()
+    }
+
     // MARK: - Sample Tests
 
     func loadSampleTest(_ sample: SampleTestTemplate) {
@@ -1025,4 +1041,4 @@ struct ContentView: View {
 
 
 
-
+	

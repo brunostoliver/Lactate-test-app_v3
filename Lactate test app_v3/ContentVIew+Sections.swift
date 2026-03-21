@@ -808,6 +808,23 @@ extension ContentView {
             .buttonStyle(.plain)
         }
     }
+
+    var deleteAthleteSection: some View {
+        Group {
+            if selectedAthlete != nil && !isEditorScreen {
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
+
+                    Button(action: {
+                        showDeleteAthleteAlert = true
+                    }) {
+                        Label("Delete Athlete", systemImage: "trash")
+                    }
+                    .buttonStyle(DestructiveActionButtonStyle())
+                }
+            }
+        }
+    }
 }
 
 struct FilledActionButtonStyle: ButtonStyle {

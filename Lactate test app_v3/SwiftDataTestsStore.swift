@@ -211,6 +211,28 @@ final class SwiftDataTestsStore: ObservableObject {
         }
     }
 
+    func deleteAthlete(id: UUID) {
+        guard let modelContext else {
+            print("SwiftDataTestsStore is not configured with a ModelContext.")
+            return
+        }
+
+        do {
+            let descriptor = FetchDescriptor<AthleteEntity>()
+            let athletes = try modelContext.fetch(descriptor)
+
+            guard let athlete = athletes.first(where: { $0.id == id }) else {
+                return
+            }
+
+            modelContext.delete(athlete)
+            try modelContext.save()
+            reload()
+        } catch {
+            print("Failed to delete athlete: \(error)")
+        }
+    }
+
     func replaceAllTests(with newTests: [LactateTest]) {
         guard let modelContext else {
             print("SwiftDataTestsStore is not configured with a ModelContext.")
