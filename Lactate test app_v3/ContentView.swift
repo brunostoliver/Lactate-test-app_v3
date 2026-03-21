@@ -414,6 +414,62 @@ struct ContentView: View {
     }
 
     @ViewBuilder
+    var athleteDetailContent: some View {
+        if usesWideDetailAnalysisLayout {
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 16) {
+                    enterNewTestSection
+                    savedTestsSection
+                        .id("savedTestsSection")
+                        .background(
+                            GeometryReader { geometry in
+                                Color.clear.preference(
+                                    key: SavedTestsTopPreferenceKey.self,
+                                    value: geometry.frame(in: .named("editorScroll")).minY
+                                )
+                            }
+                        )
+                    deleteAthleteSection
+                }
+                .frame(width: 380, alignment: .topLeading)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    if hasEnoughDataForAnalysis || shouldShowComparisonSection {
+                        detailAnalysisSection
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Analysis")
+                                .font(.headline)
+                            Text("Load or compare tests to show the graph, threshold summary, and training zones.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        } else {
+            enterNewTestSection
+            savedTestsSection
+                .id("savedTestsSection")
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: SavedTestsTopPreferenceKey.self,
+                            value: geometry.frame(in: .named("editorScroll")).minY
+                        )
+                    }
+                )
+            deleteAthleteSection
+            detailAnalysisSection
+        }
+    }
+
+    @ViewBuilder
     var editorScrollView: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -426,18 +482,7 @@ struct ContentView: View {
                             .id("topOfForm")
 
                         if !isEditorScreen {
-                            enterNewTestSection
-                            savedTestsSection
-                                .id("savedTestsSection")
-                                .background(
-                                    GeometryReader { geometry in
-                                        Color.clear.preference(
-                                            key: SavedTestsTopPreferenceKey.self,
-                                            value: geometry.frame(in: .named("editorScroll")).minY
-                                        )
-                                    }
-                                )
-                            deleteAthleteSection
+                            athleteDetailContent
                         }
 
                         if isEditorScreen && editingTest != nil {
@@ -448,7 +493,9 @@ struct ContentView: View {
                             tableSection
                         }
 
-                        detailAnalysisSection
+                        if isEditorScreen {
+                            detailAnalysisSection
+                        }
 
                         if isEditorScreen {
                             formSection
