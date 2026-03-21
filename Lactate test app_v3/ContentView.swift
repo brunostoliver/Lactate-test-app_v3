@@ -866,6 +866,10 @@ struct ContentView: View {
         shouldPreserveSavedTestsViewport = true
 
         if let externalComparisonDestination {
+            if let externalEditorDestination {
+                externalEditorDestination.wrappedValue = nil
+            }
+
             if let destination = externalComparisonDestination.wrappedValue {
                 guard let baseTest = displayedTests.first(where: { $0.id == destination.baseTestID }) else {
                     externalComparisonDestination.wrappedValue = ComparisonDestination(
@@ -980,6 +984,9 @@ struct ContentView: View {
 
     func presentEditor(for test: LactateTest?) {
         let destination = EditorDestination(test: test)
+        if let externalComparisonDestination {
+            externalComparisonDestination.wrappedValue = nil
+        }
         if let externalEditorDestination {
             externalEditorDestination.wrappedValue = destination
         } else {

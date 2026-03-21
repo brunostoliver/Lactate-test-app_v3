@@ -229,6 +229,7 @@ private struct AthleteSplitView: View {
                 initialEditingTest: destination.test,
                 externalEditorDestination: $editorDestination
             )
+            .id(destination.id)
             .navigationTitle(destination.test == nil ? "New Test" : "View/Edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -257,6 +258,7 @@ private struct AthleteSplitView: View {
                 initialLoadedTestMode: .comparisonBase,
                 initialComparedTestIDs: destination.comparedTestIDs
             )
+            .id(destination.id)
             .navigationTitle("Compare")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
