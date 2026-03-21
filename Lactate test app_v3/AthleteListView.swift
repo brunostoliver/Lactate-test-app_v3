@@ -28,65 +28,61 @@ struct AthleteListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Button {
-                        newAthleteName = ""
-                        showNewAthleteSheet = true
-                    } label: {
-                        Label("New Athlete", systemImage: "person.badge.plus")
+            ZStack {
+                List {
+                    Section {
+                        Button {
+                            newAthleteName = ""
+                            showNewAthleteSheet = true
+                        } label: {
+                            Label("New Athlete", systemImage: "person.badge.plus")
+                        }
                     }
-                }
 
-                Section("Select Existing Athlete") {
-                    if store.athletes.isEmpty {
-                        Text("No athletes yet. Create a new athlete to begin.")
-                            .foregroundColor(.secondary)
-                    } else {
-                        ForEach(store.athletes) { athlete in
-                            NavigationLink {
+                    Section("Select Existing Athlete") {
+                        if store.athletes.isEmpty {
+                            Text("No athletes yet. Create a new athlete to begin.")
+                                .foregroundColor(.secondary)
+                        } else {
+                            ForEach(store.athletes) { athlete in
+                                NavigationLink {
                                 ContentView(
                                     store: store,
                                     selectedAthlete: athlete,
                                     showsNavigationChrome: false
-                                )
-                                .navigationTitle(athlete.name)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(athlete.name)
-                                    Text("\(store.tests(for: athlete.id).count) tests")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    )
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(athlete.name)
+                                        Text("\(store.tests(for: athlete.id).count) tests")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                Section("Appearance") {
-                    Picker("Appearance", selection: $appearanceModeRawValue) {
-                        ForEach(AppearanceMode.allCases) { mode in
-                            Text(mode.title).tag(mode.rawValue)
+                    Section("Appearance") {
+                        Picker("Appearance", selection: $appearanceModeRawValue) {
+                            ForEach(AppearanceMode.allCases) { mode in
+                                Text(mode.title).tag(mode.rawValue)
+                            }
                         }
+                        .pickerStyle(.segmented)
                     }
-                    .pickerStyle(.segmented)
-                }
 
-                Section("Units") {
-                    Picker("Units", selection: unitPreferenceBinding) {
-                        ForEach(UnitPreference.allCases) { unit in
-                            Text(unit.title).tag(unit)
+                    Section("Units") {
+                        Picker("Units", selection: unitPreferenceBinding) {
+                            ForEach(UnitPreference.allCases) { unit in
+                                Text(unit.title).tag(unit)
+                            }
                         }
+                        .pickerStyle(.segmented)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
-            .navigationTitle("Athletes")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    AppLogoToolbarImage()
-                }
-            }
+            .appPageHeader(title: "Athletes")
             .preferredColorScheme(appearanceMode.colorScheme)
             .sheet(isPresented: $showNewAthleteSheet) {
                 NavigationStack {
@@ -95,17 +91,11 @@ struct AthleteListView: View {
                             TextField("Athlete name", text: $newAthleteName)
                         }
                     }
-                    .navigationTitle("New Athlete")
-                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Cancel") {
                                 showNewAthleteSheet = false
                             }
-                        }
-
-                        ToolbarItem(placement: .topBarTrailing) {
-                            AppLogoToolbarImage()
                         }
 
                         ToolbarItem(placement: .confirmationAction) {
@@ -119,6 +109,7 @@ struct AthleteListView: View {
                         }
                     }
                 }
+                .appPageHeader(title: "New Athlete")
             }
             .navigationDestination(item: $selectedAthleteForNewTest) { athlete in
                 ContentView(
@@ -126,7 +117,6 @@ struct AthleteListView: View {
                     selectedAthlete: athlete,
                     showsNavigationChrome: false
                 )
-                .navigationTitle(athlete.name)
             }
         }
     }

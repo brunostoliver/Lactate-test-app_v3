@@ -157,25 +157,10 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if showsNavigationChrome {
-                NavigationView {
-                    editorScrollView
-                        .navigationBarTitle(navigationTitle, displayMode: .inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                AppLogoToolbarImage()
-                            }
-                        }
-                }
+            if showsNavigationChrome || screenMode == .detail {
+                mainContent.appPageHeader(title: navigationTitle)
             } else {
-                editorScrollView
-                    .toolbar {
-                        if screenMode == .detail {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                AppLogoToolbarImage()
-                            }
-                        }
-                    }
+                mainContent
             }
         }
         .preferredColorScheme(appearanceMode.colorScheme)
@@ -230,20 +215,15 @@ struct ContentView: View {
                     screenMode: .editor,
                     initialEditingTest: destination.test
                 )
-                .navigationTitle(destination.test == nil ? "New Test" : "View/Edit")
-                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") {
                             editorDestination = nil
                         }
                     }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        AppLogoToolbarImage()
-                    }
                 }
             }
+            .appPageHeader(title: destination.test == nil ? "New Test" : "View/Edit")
         }
         .sheet(item: $activeFilterDatePicker) { picker in
             NavigationStack {
@@ -290,16 +270,24 @@ struct ContentView: View {
                             activeFilterDatePicker = nil
                         }
                     }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        AppLogoToolbarImage()
-                    }
                 }
             }
+            .appPageHeader(title: picker == .start ? "Start Date" : "End Date")
             .presentationDetents([.medium])
         }
         .onAppear {
             applySelectedAthleteIfNeeded()
+        }
+    }
+
+    @ViewBuilder
+    var mainContent: some View {
+        if showsNavigationChrome {
+            NavigationView {
+                editorScrollView
+            }
+        } else {
+            editorScrollView
         }
     }
 
