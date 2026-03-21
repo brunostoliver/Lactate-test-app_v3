@@ -49,7 +49,7 @@ extension ContentView {
     var enterNewTestSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button {
-                editorDestination = EditorDestination(test: nil)
+                presentEditor(for: nil)
             } label: {
                 Label("Enter New Test", systemImage: "square.and.pencil")
             }
@@ -756,7 +756,7 @@ extension ContentView {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
                                 Button(action: {
-                                    editorDestination = EditorDestination(test: test)
+                                    presentEditor(for: test)
                                 }) {
                                     Label("View/Edit", systemImage: "square.and.pencil")
                                 }
