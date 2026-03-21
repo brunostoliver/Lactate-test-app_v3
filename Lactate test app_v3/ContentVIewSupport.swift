@@ -1,5 +1,45 @@
 import SwiftUI
 
+enum ThresholdInfoTopic: String, Identifiable {
+    case lt1
+    case dmax
+    case modifiedDmax
+    case logLog
+    case lt2
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .lt1:
+            return "LT1"
+        case .dmax:
+            return "Dmax"
+        case .modifiedDmax:
+            return "Modified Dmax"
+        case .logLog:
+            return "Log-Log Breakpoint"
+        case .lt2:
+            return "LT2"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .lt1:
+            return "First lactate turnpoint, commonly estimated near 2.0 mmol/L."
+        case .dmax:
+            return "Point farthest from the baseline between first and last steps."
+        case .modifiedDmax:
+            return "Newell-style Dmax variant using a reduced, more stable curve range."
+        case .logLog:
+            return "Breakpoint from log-transformed workload and lactate curve relationships."
+        case .lt2:
+            return "Second lactate turnpoint, commonly estimated near 4.0 mmol/L."
+        }
+    }
+}
+
 enum GraphXAxis: String, CaseIterable, Identifiable {
     case power
     case heartRate

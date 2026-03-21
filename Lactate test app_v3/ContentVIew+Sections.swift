@@ -121,7 +121,7 @@ extension ContentView {
     var formSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(loadedTestMode == .editing ? "Loaded Saved Test" : "Test Details")
+                Text("Test Details")
                     .font(.headline)
 
                 Spacer()
@@ -131,12 +131,6 @@ extension ContentView {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-            }
-
-            if loadedTestMode == .editing {
-                Text("This saved test is loaded into the form. Tap Update Test to save any changes.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
 
             if selectedAthlete == nil {
@@ -450,44 +444,54 @@ extension ContentView {
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     if let lt1 = interpolatedThresholdPoint(targetLactate: 2.0) {
-                        Text("LT1 (2.0 mmol/L): \(formatXAxisValue(lt1.x))")
-                            .foregroundColor(.green)
+                        thresholdSummaryRow(
+                            title: "LT1",
+                            value: formatXAxisValue(lt1.x),
+                            infoTopic: .lt1
+                        )
                     } else {
-                        Text("LT1 (2.0 mmol/L): not reached in the current data")
-                            .foregroundColor(.secondary)
+                        thresholdSummaryUnavailableRow(title: "LT1", infoTopic: .lt1)
                     }
 
                     if let dmaxLactate = primaryDmaxLactate,
                        let dmax = interpolatedThresholdPoint(targetLactate: dmaxLactate) {
-                        Text("Dmax: \(formatXAxisValue(dmax.x)) at lactate \(String(format: "%.2f", dmaxLactate)) mmol/L")
-                            .foregroundColor(.purple)
+                        thresholdSummaryRow(
+                            title: "Dmax",
+                            value: "\(formatXAxisValue(dmax.x)) - \(String(format: "%.2f", dmaxLactate)) mmol/L",
+                            infoTopic: .dmax
+                        )
                     } else {
-                        Text("Dmax: not enough data")
-                            .foregroundColor(.secondary)
+                        thresholdSummaryUnavailableRow(title: "Dmax", infoTopic: .dmax)
                     }
 
                     if let modified = modifiedDmaxResult {
-                        Text("Modified Dmax (Newell): \(formatPrimaryWorkload(modified.workload)) at lactate \(String(format: "%.2f", modified.lactate)) mmol/L")
-                            .foregroundColor(.indigo)
+                        thresholdSummaryRow(
+                            title: "Modified Dmax",
+                            value: "\(formatPrimaryWorkload(modified.workload)) - \(String(format: "%.2f", modified.lactate)) mmol/L",
+                            infoTopic: .modifiedDmax
+                        )
                     } else {
-                        Text("Modified Dmax (Newell): not enough data")
-                            .foregroundColor(.secondary)
+                        thresholdSummaryUnavailableRow(title: "Modified Dmax", infoTopic: .modifiedDmax)
                     }
 
                     if let logLog = logLogBreakpointResult {
-                        Text("Log-log breakpoint: \(formatPrimaryWorkload(logLog.workload)) at lactate \(String(format: "%.2f", logLog.lactate)) mmol/L")
-                            .foregroundColor(.brown)
+                        thresholdSummaryRow(
+                            title: "Log-Log",
+                            value: "\(formatPrimaryWorkload(logLog.workload)) - \(String(format: "%.2f", logLog.lactate)) mmol/L",
+                            infoTopic: .logLog
+                        )
                     } else {
-                        Text("Log-log breakpoint: not enough data")
-                            .foregroundColor(.secondary)
+                        thresholdSummaryUnavailableRow(title: "Log-Log", infoTopic: .logLog)
                     }
 
                     if let lt2 = interpolatedThresholdPoint(targetLactate: 4.0) {
-                        Text("LT2 (4.0 mmol/L): \(formatXAxisValue(lt2.x))")
-                            .foregroundColor(.red)
+                        thresholdSummaryRow(
+                            title: "LT2",
+                            value: formatXAxisValue(lt2.x),
+                            infoTopic: .lt2
+                        )
                     } else {
-                        Text("LT2 (4.0 mmol/L): not reached in the current data")
-                            .foregroundColor(.secondary)
+                        thresholdSummaryUnavailableRow(title: "LT2", infoTopic: .lt2)
                     }
                 }
                 .font(.caption)
@@ -495,6 +499,42 @@ extension ContentView {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)
             }
+        }
+    }
+
+    func thresholdSummaryRow(
+        title: String,
+        value: String,
+        infoTopic: ThresholdInfoTopic
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("\(title): \(value)")
+
+            Button(action: {
+                activeThresholdInfoTopic = infoTopic
+            }) {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    func thresholdSummaryUnavailableRow(
+        title: String,
+        infoTopic: ThresholdInfoTopic
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("\(title): unavailable")
+                .foregroundColor(.secondary)
+
+            Button(action: {
+                activeThresholdInfoTopic = infoTopic
+            }) {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -613,9 +653,9 @@ extension ContentView {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
-                    Button(action: saveCurrentTest) {
-                        Label(editingTest == nil ? "Save Test" : "Update Test", systemImage: "square.and.arrow.down")
-                    }
+                Button(action: saveCurrentTest) {
+                    Label(editingTest == nil ? "Save Test" : "Save Changes", systemImage: "square.and.arrow.down")
+                }
                     .buttonStyle(FilledActionButtonStyle())
                     .disabled(
                         draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||

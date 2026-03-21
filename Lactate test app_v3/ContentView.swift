@@ -117,6 +117,7 @@ struct ContentView: View {
     @State var showExportErrorAlert: Bool = false
     @State var showComparisonSportMismatchAlert: Bool = false
     @State var showRestingLactateInfoAlert: Bool = false
+    @State var activeThresholdInfoTopic: ThresholdInfoTopic? = nil
     @State var didApplySelectedAthlete = false
     @State var pendingScrollTarget: ScrollTarget? = .top
     @State var savedTestsSectionTop: CGFloat = 0
@@ -207,6 +208,13 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("This value is stored with the test but excluded from graph and threshold calculations.")
+        }
+        .alert(item: $activeThresholdInfoTopic) { topic in
+            Alert(
+                title: Text(topic.title),
+                message: Text(topic.message),
+                dismissButton: .cancel(Text("OK"))
+            )
         }
         .sheet(item: $editorDestination) { destination in
             NavigationStack {
