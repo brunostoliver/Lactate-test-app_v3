@@ -26,7 +26,6 @@ struct AthleteDetailWorkspaceView: View {
 
     @State private var editorDestination: ContentView.EditorDestination?
     @State private var comparisonDestination: ContentView.ComparisonDestination?
-
     var body: some View {
         HStack(spacing: 0) {
             ContentView(
@@ -36,7 +35,7 @@ struct AthleteDetailWorkspaceView: View {
                 externalEditorDestination: $editorDestination,
                 externalComparisonDestination: $comparisonDestination
             )
-            .frame(minWidth: 320, idealWidth: 420, maxWidth: 500)
+            .frame(minWidth: 320, idealWidth: 380, maxWidth: 460)
 
             Divider()
 
@@ -50,7 +49,19 @@ struct AthleteDetailWorkspaceView: View {
     @ViewBuilder
     private var detailPane: some View {
         if let editorDestination {
-            NavigationStack {
+            VStack(spacing: 0) {
+                HStack {
+                    Text(editorDestination.test == nil ? "New Test" : "View/Edit")
+                        .font(.headline)
+                    Spacer()
+                    Button("Cancel") {
+                        self.editorDestination = nil
+                    }
+                }
+                .padding()
+
+                Divider()
+
                 ContentView(
                     store: store,
                     selectedAthlete: athlete,
@@ -60,19 +71,22 @@ struct AthleteDetailWorkspaceView: View {
                     externalEditorDestination: $editorDestination
                 )
                 .id(editorDestination.id)
-                .navigationTitle(editorDestination.test == nil ? "New Test" : "View/Edit")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            self.editorDestination = nil
-                        }
-                    }
-                }
             }
         } else if let comparisonDestination,
                   let baseTest = store.tests(for: athlete.id).first(where: { $0.id == comparisonDestination.baseTestID }) {
-            NavigationStack {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Compare")
+                        .font(.headline)
+                    Spacer()
+                    Button("Close") {
+                        self.comparisonDestination = nil
+                    }
+                }
+                .padding()
+
+                Divider()
+
                 ContentView(
                     store: store,
                     selectedAthlete: athlete,
@@ -84,15 +98,6 @@ struct AthleteDetailWorkspaceView: View {
                     initialComparedTestIDs: comparisonDestination.comparedTestIDs
                 )
                 .id(comparisonDestination.id)
-                .navigationTitle("Compare")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") {
-                            self.comparisonDestination = nil
-                        }
-                    }
-                }
             }
         } else {
             VStack(spacing: 12) {
@@ -123,8 +128,6 @@ private struct AthleteSplitView: View {
     @State private var selectedAthleteID: UUID?
     @State private var editorDestination: ContentView.EditorDestination?
     @State private var comparisonDestination: ContentView.ComparisonDestination?
-    @State private var splitViewVisibility: NavigationSplitViewVisibility = .all
-
     private var appearanceMode: AppearanceMode {
         AppearanceMode(rawValue: appearanceModeRawValue) ?? .system
     }
@@ -147,34 +150,29 @@ private struct AthleteSplitView: View {
     }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $splitViewVisibility) {
+        HStack(spacing: 0) {
             sidebarColumn
-        } content: {
+                .frame(width: 240)
+
+            Divider()
+
             contentColumn
-        } detail: {
+                .frame(minWidth: 360, idealWidth: 460, maxWidth: 560)
+
+            Divider()
+
             detailColumn
+                .frame(minWidth: 420, maxWidth: .infinity)
         }
-        .navigationSplitViewStyle(.balanced)
         .preferredColorScheme(appearanceMode.colorScheme)
         .onAppear {
             if selectedAthleteID == nil {
                 selectedAthleteID = store.athletes.first?.id
             }
-            splitViewVisibility = .all
         }
         .onChange(of: selectedAthleteID) {
             editorDestination = nil
             comparisonDestination = nil
-        }
-        .onChange(of: editorDestination?.id) {
-            if editorDestination != nil {
-                splitViewVisibility = .all
-            }
-        }
-        .onChange(of: comparisonDestination?.id) {
-            if comparisonDestination != nil {
-                splitViewVisibility = .all
-            }
         }
         .onChange(of: store.athletes.map(\.id)) {
             if let selectedAthleteID,
@@ -188,9 +186,18 @@ private struct AthleteSplitView: View {
     }
 
     private var sidebarColumn: some View {
-        athleteList
-            .navigationTitle("Athletes")
-            .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 260)
+        VStack(spacing: 0) {
+            HStack {
+                Text("Athletes")
+                    .font(.headline)
+                Spacer()
+            }
+            .padding()
+
+            Divider()
+
+            athleteList
+        }
             .sheet(isPresented: $showNewAthleteSheet) {
                 newAthleteSheet
             }
@@ -199,23 +206,30 @@ private struct AthleteSplitView: View {
     @ViewBuilder
     private var contentColumn: some View {
         if let athlete = selectedAthlete {
-            ContentView(
-                store: store,
-                selectedAthlete: athlete,
-                showsNavigationChrome: false,
-                externalEditorDestination: $editorDestination,
-                externalComparisonDestination: $comparisonDestination
-            )
-            .navigationTitle(athlete.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationSplitViewColumnWidth(min: 360, ideal: 460, max: 560)
+            VStack(spacing: 0) {
+                HStack {
+                    Text(athlete.name)
+                        .font(.headline)
+                    Spacer()
+                }
+                .padding()
+
+                Divider()
+
+                ContentView(
+                    store: store,
+                    selectedAthlete: athlete,
+                    showsNavigationChrome: false,
+                    externalEditorDestination: $editorDestination,
+                    externalComparisonDestination: $comparisonDestination
+                )
+            }
         } else {
             placeholderColumn(
                 systemImage: "person.2",
                 title: "Select an Athlete",
                 message: "Choose an athlete from the list to view tests and analysis."
             )
-            .navigationSplitViewColumnWidth(min: 360, ideal: 460, max: 560)
         }
     }
 
@@ -223,19 +237,16 @@ private struct AthleteSplitView: View {
     private var detailColumn: some View {
         if let athlete = selectedAthlete, let editorDestination {
             editorDetailColumn(for: athlete, destination: editorDestination)
-                .navigationSplitViewColumnWidth(min: 420, ideal: 560, max: 720)
         } else if let athlete = selectedAthlete,
                   let comparisonDestination,
                   let baseTest = store.tests(for: athlete.id).first(where: { $0.id == comparisonDestination.baseTestID }) {
             comparisonDetailColumn(for: athlete, destination: comparisonDestination, baseTest: baseTest)
-                .navigationSplitViewColumnWidth(min: 420, ideal: 560, max: 720)
         } else {
             placeholderColumn(
                 systemImage: "square.and.pencil",
                 title: "Select or Create a Test",
                 message: "Use New Test or View/Edit from the middle pane to open the editor here."
             )
-            .navigationSplitViewColumnWidth(min: 420, ideal: 560, max: 720)
         }
     }
 
