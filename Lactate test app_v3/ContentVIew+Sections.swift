@@ -118,41 +118,6 @@ extension ContentView {
         .cornerRadius(12)
     }
 
-    var editingBannerSection: some View {
-        Group {
-            if let editingTest, loadedTestMode == .editing {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Text("Loaded")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.orange.opacity(0.25))
-                            .cornerRadius(6)
-
-                        Text("Viewing loaded saved test - \(editingTest.resolvedTestName)")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                    }
-
-                    Text("You may review the values below or modify them and tap Update Test.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Button("Cancel Viewing/Editing") {
-                        resetEntryFields()
-                    }
-                    .font(.caption)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.15))
-                .cornerRadius(8)
-            }
-        }
-    }
-
     var formSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -252,7 +217,7 @@ extension ContentView {
 
     var tableSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Current Input Summary")
+            Text("Input Summary")
                 .font(.headline)
 
             HStack {
@@ -369,8 +334,6 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
 
-            analyzedTestSection
-
             HStack {
                 Text("Lactate Curve")
                     .font(.headline)
@@ -423,15 +386,11 @@ extension ContentView {
 
     var analyzedTestSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Analyzed Test")
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(.blue)
-
             Text(currentSeriesLabel)
                 .font(.headline)
+                .foregroundColor(.blue)
 
-            Text("\(shortDateString(draft.date)) • \(draft.sport.rawValue.capitalized)")
+            Text("\(shortDateString(draft.date)) - \(draft.sport.rawValue.capitalized)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

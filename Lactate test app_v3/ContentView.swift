@@ -224,7 +224,7 @@ struct ContentView: View {
                     screenMode: .editor,
                     initialEditingTest: destination.test
                 )
-                .navigationTitle(destination.test == nil ? "New Test" : "Edit Test")
+                .navigationTitle(destination.test == nil ? "New Test" : "View/Edit")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -370,8 +370,8 @@ struct ContentView: View {
                             )
                     }
 
-                    if isEditorScreen {
-                        editingBannerSection
+                    if isEditorScreen && editingTest != nil {
+                        analyzedTestSection
                     }
 
                     if isEditorScreen && editingTest != nil && hasEnoughDataForAnalysis {
@@ -706,8 +706,22 @@ struct ContentView: View {
     }
 
     func resetForm() {
+        if isEditorScreen && editingTest != nil {
+            cancelEditingSession()
+            return
+        }
+
         resetEntryFields()
         comparedTestIDs = []
+    }
+
+    func cancelEditingSession() {
+        resetEntryFields()
+        comparedTestIDs = []
+
+        if isEditorScreen {
+            dismiss()
+        }
     }
 
     func clearTestFilters() {
