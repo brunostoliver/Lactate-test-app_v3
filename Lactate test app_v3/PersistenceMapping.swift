@@ -67,6 +67,7 @@ extension LactateTest {
             temperatureUnit: entity.temperatureUnit,
             humidityPercent: entity.humidityPercent,
             terrain: entity.terrain,
+            notes: entity.notes,
             sport: entity.sport,
             date: entity.date,
             steps: mappedSteps
@@ -82,6 +83,7 @@ extension LactateTest {
             temperatureUnitRawValue: temperatureUnit.rawValue,
             humidityPercent: humidityPercent,
             terrain: terrain,
+            notes: notes,
             sportRawValue: sport.rawValue,
             date: date
         )

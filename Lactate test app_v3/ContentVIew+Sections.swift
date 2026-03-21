@@ -186,6 +186,18 @@ extension ContentView {
             TextField("Place / terrain (track, road, treadmill, etc.)", text: $draft.terrain)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Notes")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                TextEditor(text: $draft.notes)
+                    .frame(minHeight: 120)
+                    .padding(8)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
             Divider()
 
             Text("Steps")

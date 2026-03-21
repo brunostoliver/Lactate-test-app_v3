@@ -94,6 +94,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
     var temperatureUnit: TemperatureUnit
     var humidityPercent: Double?
     var terrain: String?
+    var notes: String?
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
@@ -107,6 +108,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         temperatureUnit: TemperatureUnit = .celsius,
         humidityPercent: Double? = nil,
         terrain: String? = nil,
+        notes: String? = nil,
         sport: Sport,
         date: Date,
         steps: [LactateStep]
@@ -119,6 +121,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         self.temperatureUnit = temperatureUnit
         self.humidityPercent = humidityPercent
         self.terrain = terrain
+        self.notes = notes
         self.sport = sport
         self.date = date
         self.steps = steps
@@ -149,6 +152,7 @@ struct LactateTestDraft {
     var temperatureUnit: TemperatureUnit
     var humidityPercent: Double?
     var terrain: String
+    var notes: String
     var sport: Sport
     var date: Date
     var steps: [LactateStep]
@@ -161,6 +165,7 @@ struct LactateTestDraft {
         temperatureUnit: TemperatureUnit = .celsius,
         humidityPercent: Double? = nil,
         terrain: String = "",
+        notes: String = "",
         sport: Sport = .running,
         date: Date = Date(),
         steps: [LactateStep] = [LactateStep.emptyStep(stepIndex: 1)]
@@ -172,6 +177,7 @@ struct LactateTestDraft {
         self.temperatureUnit = temperatureUnit
         self.humidityPercent = humidityPercent
         self.terrain = terrain
+        self.notes = notes
         self.sport = sport
         self.date = date
         self.steps = steps
@@ -190,6 +196,7 @@ struct LactateTestDraft {
             temperatureUnit: temperatureUnit,
             humidityPercent: humidityPercent,
             terrain: terrain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : terrain.trimmingCharacters(in: .whitespacesAndNewlines),
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes.trimmingCharacters(in: .whitespacesAndNewlines),
             sport: sport,
             date: date,
             steps: steps

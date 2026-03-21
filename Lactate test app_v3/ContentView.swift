@@ -145,6 +145,7 @@ struct ContentView: View {
                     temperatureUnit: $0.temperatureUnit,
                     humidityPercent: $0.humidityPercent,
                     terrain: $0.terrain ?? "",
+                    notes: $0.notes ?? "",
                     sport: $0.sport,
                     date: $0.date,
                     steps: $0.steps
@@ -625,6 +626,7 @@ struct ContentView: View {
             temperatureUnit: test.temperatureUnit,
             humidityPercent: test.humidityPercent,
             terrain: test.terrain ?? "",
+            notes: test.notes ?? "",
             sport: test.sport,
             date: test.date,
             steps: test.steps

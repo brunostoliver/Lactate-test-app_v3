@@ -39,6 +39,7 @@ final class LactateTestEntity {
     var temperatureUnitRawValue: String?
     var humidityPercent: Double?
     var terrain: String?
+    var notes: String?
     var sportRawValue: String
     var date: Date
 
@@ -55,6 +56,7 @@ final class LactateTestEntity {
         temperatureUnitRawValue: String? = TemperatureUnit.celsius.rawValue,
         humidityPercent: Double? = nil,
         terrain: String? = nil,
+        notes: String? = nil,
         sportRawValue: String,
         date: Date,
         athlete: AthleteEntity? = nil,
@@ -67,6 +69,7 @@ final class LactateTestEntity {
         self.temperatureUnitRawValue = temperatureUnitRawValue
         self.humidityPercent = humidityPercent
         self.terrain = terrain
+        self.notes = notes
         self.sportRawValue = sportRawValue
         self.date = date
         self.athlete = athlete
