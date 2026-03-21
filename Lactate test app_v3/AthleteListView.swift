@@ -27,115 +27,126 @@ struct AthleteListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            HStack(alignment: .top) {
-                Spacer(minLength: 0)
+        GeometryReader { geometry in
+            NavigationStack {
+                HStack(alignment: .top) {
+                    Spacer(minLength: 0)
 
-                List {
-                    Section {
-                        Button {
-                            newAthleteName = ""
-                            showNewAthleteSheet = true
-                        } label: {
-                            Label("New Athlete", systemImage: "person.badge.plus")
+                    List {
+                        Section {
+                            Button {
+                                newAthleteName = ""
+                                showNewAthleteSheet = true
+                            } label: {
+                                Label("New Athlete", systemImage: "person.badge.plus")
+                            }
                         }
-                    }
 
-                    Section("Select Existing Athlete") {
-                        if store.athletes.isEmpty {
-                            Text("No athletes yet. Create a new athlete to begin.")
-                                .foregroundColor(.secondary)
-                        } else {
-                            ForEach(store.athletes) { athlete in
-                                NavigationLink {
-                                    ContentView(
-                                        store: store,
-                                        selectedAthlete: athlete,
-                                        showsNavigationChrome: false
-                                    )
-                                    .navigationTitle(athlete.name)
-                                    .navigationBarTitleDisplayMode(.inline)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(athlete.name)
-                                        Text("\(store.tests(for: athlete.id).count) tests")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                        Section("Select Existing Athlete") {
+                            if store.athletes.isEmpty {
+                                Text("No athletes yet. Create a new athlete to begin.")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                ForEach(store.athletes) { athlete in
+                                    NavigationLink {
+                                        athleteDestination(for: athlete, size: geometry.size)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(athlete.name)
+                                            Text("\(store.tests(for: athlete.id).count) tests")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Section("Appearance") {
-                        Picker("Appearance", selection: $appearanceModeRawValue) {
-                            ForEach(AppearanceMode.allCases) { mode in
-                                Text(mode.title).tag(mode.rawValue)
+                        Section("Appearance") {
+                            Picker("Appearance", selection: $appearanceModeRawValue) {
+                                ForEach(AppearanceMode.allCases) { mode in
+                                    Text(mode.title).tag(mode.rawValue)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+
+                        Section("Units") {
+                            Picker("Units", selection: unitPreferenceBinding) {
+                                ForEach(UnitPreference.allCases) { unit in
+                                    Text(unit.title).tag(unit)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                    }
+                    .frame(maxWidth: 760)
+
+                    Spacer(minLength: 0)
+                }
+                .navigationTitle("Athletes")
+                .preferredColorScheme(appearanceMode.colorScheme)
+                .sheet(isPresented: $showNewAthleteSheet) {
+                    NavigationStack {
+                        HStack {
+                            Spacer(minLength: 0)
+
+                            Form {
+                                Section("New Athlete") {
+                                    TextField("Athlete name", text: $newAthleteName)
+                                }
+                            }
+                            .frame(maxWidth: 560)
+
+                            Spacer(minLength: 0)
+                        }
+                        .navigationTitle("New Athlete")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") {
+                                    showNewAthleteSheet = false
+                                }
+                            }
+
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Create") {
+                                    let trimmedName = newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    store.appendAthlete(name: trimmedName)
+                                    selectedAthleteForNewTest = store.athletes.first { $0.name == trimmedName }
+                                    showNewAthleteSheet = false
+                                }
+                                .disabled(newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             }
                         }
-                        .pickerStyle(.segmented)
-                    }
-
-                    Section("Units") {
-                        Picker("Units", selection: unitPreferenceBinding) {
-                            ForEach(UnitPreference.allCases) { unit in
-                                Text(unit.title).tag(unit)
-                            }
-                        }
-                        .pickerStyle(.segmented)
                     }
                 }
-                .frame(maxWidth: 760)
-
-                Spacer(minLength: 0)
-            }
-            .navigationTitle("Athletes")
-            .preferredColorScheme(appearanceMode.colorScheme)
-            .sheet(isPresented: $showNewAthleteSheet) {
-                NavigationStack {
-                    HStack {
-                        Spacer(minLength: 0)
-
-                        Form {
-                            Section("New Athlete") {
-                                TextField("Athlete name", text: $newAthleteName)
-                            }
-                        }
-                        .frame(maxWidth: 560)
-
-                        Spacer(minLength: 0)
-                    }
-                    .navigationTitle("New Athlete")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") {
-                                showNewAthleteSheet = false
-                            }
-                        }
-
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Create") {
-                                let trimmedName = newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines)
-                                store.appendAthlete(name: trimmedName)
-                                selectedAthleteForNewTest = store.athletes.first { $0.name == trimmedName }
-                                showNewAthleteSheet = false
-                            }
-                            .disabled(newAthleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        }
-                    }
+                .navigationDestination(item: $selectedAthleteForNewTest) { athlete in
+                    athleteDestination(for: athlete, size: geometry.size)
                 }
-            }
-            .navigationDestination(item: $selectedAthleteForNewTest) { athlete in
-                ContentView(
-                    store: store,
-                    selectedAthlete: athlete,
-                    showsNavigationChrome: false
-                )
-                .navigationTitle(athlete.name)
-                .navigationBarTitleDisplayMode(.inline)
             }
         }
+    }
+
+    @ViewBuilder
+    private func athleteDestination(for athlete: Athlete, size: CGSize) -> some View {
+        if shouldUsePortraitIPadWorkspace(for: size) {
+            AthleteDetailWorkspaceView(store: store, athlete: athlete)
+        } else {
+            ContentView(
+                store: store,
+                selectedAthlete: athlete,
+                showsNavigationChrome: false
+            )
+            .navigationTitle(athlete.name)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func shouldUsePortraitIPadWorkspace(for size: CGSize) -> Bool {
+        UIDevice.current.userInterfaceIdiom == .pad &&
+        size.height >= size.width &&
+        size.width >= 820
     }
 }
 
