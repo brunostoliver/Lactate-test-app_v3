@@ -3,6 +3,49 @@ import SwiftUI
 extension ContentView {
     // MARK: - Sections
 
+    @ViewBuilder
+    var environmentFieldsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Environment")
+                .font(.headline)
+
+            HStack(spacing: 12) {
+                TextField("Temperature", text: temperatureStringBinding())
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                Picker("Temp Unit", selection: $draft.temperatureUnit) {
+                    ForEach(TemperatureUnit.allCases) { unit in
+                        Text(unit.title).tag(unit)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .frame(maxWidth: 120)
+            }
+
+            TextField("Humidity (%)", text: humidityStringBinding())
+                .keyboardType(.decimalPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            TextField("Place / terrain (track, road, treadmill, etc.)", text: $draft.terrain)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        }
+    }
+
+    var notesSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Notes")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            TextEditor(text: $draft.notes)
+                .frame(minHeight: 120)
+                .padding(8)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
     var enterNewTestSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button {
@@ -156,40 +199,17 @@ extension ContentView {
 
             Divider()
 
-            Text("Environment")
-                .font(.headline)
+            if usesWideEditorFormLayout {
+                HStack(alignment: .top, spacing: 16) {
+                    environmentFieldsSection
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
 
-            HStack(spacing: 12) {
-                TextField("Temperature", text: temperatureStringBinding())
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                Picker("Temp Unit", selection: $draft.temperatureUnit) {
-                    ForEach(TemperatureUnit.allCases) { unit in
-                        Text(unit.title).tag(unit)
-                    }
+                    notesSection
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .frame(maxWidth: 120)
-            }
-
-            TextField("Humidity (%)", text: humidityStringBinding())
-                .keyboardType(.decimalPad)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            TextField("Place / terrain (track, road, treadmill, etc.)", text: $draft.terrain)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Notes")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                TextEditor(text: $draft.notes)
-                    .frame(minHeight: 120)
-                    .padding(8)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                environmentFieldsSection
+                notesSection
             }
 
             Divider()

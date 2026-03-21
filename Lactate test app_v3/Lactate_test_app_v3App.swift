@@ -24,7 +24,7 @@ private struct RootView: View {
     @State private var didSetUpStore = false
 
     var body: some View {
-        AthleteListView(store: swiftDataStore)
+        AdaptiveRootView(store: swiftDataStore)
             .onAppear {
                 guard !didSetUpStore else { return }
                 didSetUpStore = true

@@ -16,24 +16,31 @@ struct SampleTestPickerView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("Running") {
-                    ForEach(runningSamples) { sample in
-                        Button(sample.title) {
-                            onSelect(sample)
-                            dismiss()
-                        }
-                    }
-                }
+            HStack(alignment: .top) {
+                Spacer(minLength: 0)
 
-                Section("Cycling") {
-                    ForEach(cyclingSamples) { sample in
-                        Button(sample.title) {
-                            onSelect(sample)
-                            dismiss()
+                List {
+                    Section("Running") {
+                        ForEach(runningSamples) { sample in
+                            Button(sample.title) {
+                                onSelect(sample)
+                                dismiss()
+                            }
+                        }
+                    }
+
+                    Section("Cycling") {
+                        ForEach(cyclingSamples) { sample in
+                            Button(sample.title) {
+                                onSelect(sample)
+                                dismiss()
+                            }
                         }
                     }
                 }
+                .frame(maxWidth: 760)
+
+                Spacer(minLength: 0)
             }
             .navigationTitle("Sample Tests")
             .navigationBarTitleDisplayMode(.inline)

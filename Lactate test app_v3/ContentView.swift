@@ -93,6 +93,7 @@ struct ContentView: View {
     let screenMode: ScreenMode
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @AppStorage("unitPreference") var unitPreferenceRawValue: String = UnitPreference.metric.rawValue
     @AppStorage("appearanceMode") var appearanceModeRawValue: String = AppearanceMode.system.rawValue
@@ -372,64 +373,103 @@ struct ContentView: View {
         screenMode == .editor
     }
 
+    var usesWideDetailAnalysisLayout: Bool {
+        !isEditorScreen && horizontalSizeClass == .regular
+    }
+
+    var usesWideEditorFormLayout: Bool {
+        isEditorScreen && horizontalSizeClass == .regular
+    }
+
     @ViewBuilder
-    var editorScrollView: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
+    var detailAnalysisSection: some View {
+        if usesWideDetailAnalysisLayout && hasEnoughDataForAnalysis {
+            HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 16) {
-                    Color.clear
-                        .frame(height: 1)
-                        .id("topOfForm")
-
-                    if !isEditorScreen {
-                        enterNewTestSection
-                        savedTestsSection
-                            .id("savedTestsSection")
-                            .background(
-                                GeometryReader { geometry in
-                                    Color.clear.preference(
-                                        key: SavedTestsTopPreferenceKey.self,
-                                        value: geometry.frame(in: .named("editorScroll")).minY
-                                    )
-                                }
-                            )
-                        deleteAthleteSection
-                    }
-
-                    if isEditorScreen && editingTest != nil {
-                        analyzedTestSection
-                    }
-
-                    if isEditorScreen && editingTest != nil && hasEnoughDataForAnalysis {
-                        tableSection
-                    }
-
                     if shouldShowComparisonSection {
                         comparisonSection
                     }
 
-                    if hasEnoughDataForAnalysis {
-                        graphSection
-                        thresholdsSection
-                        trainingZonesSection
-                    }
+                    graphSection
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                    if isEditorScreen {
-                        formSection
-                    }
+                VStack(alignment: .leading, spacing: 16) {
+                    thresholdsSection
+                    trainingZonesSection
+                }
+                .frame(width: 320, alignment: .topLeading)
+            }
+        } else {
+            if shouldShowComparisonSection {
+                comparisonSection
+            }
 
-                    if isEditorScreen && editingTest == nil && hasEnoughDataForAnalysis {
-                        tableSection
-                    }
+            if hasEnoughDataForAnalysis {
+                graphSection
+                thresholdsSection
+                trainingZonesSection
+            }
+        }
+    }
 
-                    if isEditorScreen {
-                        saveSection
-                        if editingTest == nil {
-                            sampleTestsSection
+    @ViewBuilder
+    var editorScrollView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                HStack(alignment: .top) {
+                    Spacer(minLength: 0)
+
+                    VStack(alignment: .leading, spacing: 16) {
+                        Color.clear
+                            .frame(height: 1)
+                            .id("topOfForm")
+
+                        if !isEditorScreen {
+                            enterNewTestSection
+                            savedTestsSection
+                                .id("savedTestsSection")
+                                .background(
+                                    GeometryReader { geometry in
+                                        Color.clear.preference(
+                                            key: SavedTestsTopPreferenceKey.self,
+                                            value: geometry.frame(in: .named("editorScroll")).minY
+                                        )
+                                    }
+                                )
+                            deleteAthleteSection
+                        }
+
+                        if isEditorScreen && editingTest != nil {
+                            analyzedTestSection
+                        }
+
+                        if isEditorScreen && editingTest != nil && hasEnoughDataForAnalysis {
+                            tableSection
+                        }
+
+                        detailAnalysisSection
+
+                        if isEditorScreen {
+                            formSection
+                        }
+
+                        if isEditorScreen && editingTest == nil && hasEnoughDataForAnalysis {
+                            tableSection
+                        }
+
+                        if isEditorScreen {
+                            saveSection
+                            if editingTest == nil {
+                                sampleTestsSection
+                            }
                         }
                     }
+                    .frame(maxWidth: 960, alignment: .leading)
+                    .padding()
+
+                    Spacer(minLength: 0)
                 }
-                .padding()
             }
             .coordinateSpace(name: "editorScroll")
             .background(
@@ -1041,4 +1081,4 @@ struct ContentView: View {
 
 
 
-	
+

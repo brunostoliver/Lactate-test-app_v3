@@ -28,7 +28,9 @@ struct AthleteListView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            HStack(alignment: .top) {
+                Spacer(minLength: 0)
+
                 List {
                     Section {
                         Button {
@@ -83,15 +85,25 @@ struct AthleteListView: View {
                         .pickerStyle(.segmented)
                     }
                 }
+                .frame(maxWidth: 760)
+
+                Spacer(minLength: 0)
             }
             .navigationTitle("Athletes")
             .preferredColorScheme(appearanceMode.colorScheme)
             .sheet(isPresented: $showNewAthleteSheet) {
                 NavigationStack {
-                    Form {
-                        Section("New Athlete") {
-                            TextField("Athlete name", text: $newAthleteName)
+                    HStack {
+                        Spacer(minLength: 0)
+
+                        Form {
+                            Section("New Athlete") {
+                                TextField("Athlete name", text: $newAthleteName)
+                            }
                         }
+                        .frame(maxWidth: 560)
+
+                        Spacer(minLength: 0)
                     }
                     .navigationTitle("New Athlete")
                     .navigationBarTitleDisplayMode(.inline)
