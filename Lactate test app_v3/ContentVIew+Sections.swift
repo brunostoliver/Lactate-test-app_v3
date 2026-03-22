@@ -574,6 +574,16 @@ extension ContentView {
                     } else {
                         thresholdSummaryUnavailableRow(title: "LT2", infoTopic: .lt2)
                     }
+
+                    if let vo2MaxEstimate = estimatedVO2Max(for: draft) {
+                        thresholdSummaryRow(
+                            title: "Estimated VO2max",
+                            value: "\(String(format: "%.1f", vo2MaxEstimate.value)) mL/kg/min (\(vo2MaxEstimate.methodSummary))",
+                            infoTopic: .vo2Max
+                        )
+                    } else {
+                        thresholdSummaryUnavailableRow(title: "Estimated VO2max", infoTopic: .vo2Max)
+                    }
                 }
                 .font(.caption)
                 .padding(8)

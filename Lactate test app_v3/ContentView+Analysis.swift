@@ -2,6 +2,57 @@ import SwiftUI
 
 extension ContentView {
 
+    func runningSpeedPairs(for draft: LactateTestDraft) -> [MetricLactatePair] {
+        draft.steps.compactMap { step -> MetricLactatePair? in
+            guard let paceSeconds = step.runningPaceSecondsPerKm,
+                  let lactate = step.lactate,
+                  paceSeconds > 0 else { return nil }
+            let speedKmh = 3600.0 / Double(paceSeconds)
+            return MetricLactatePair(metric: speedKmh, lactate: lactate)
+        }
+    }
+
+    func cyclingPowerPairs(for draft: LactateTestDraft) -> [MetricLactatePair] {
+        draft.steps.compactMap { step -> MetricLactatePair? in
+            guard let power = step.powerWatts,
+                  let lactate = step.lactate else { return nil }
+            return MetricLactatePair(metric: Double(power), lactate: lactate)
+        }
+    }
+
+    func estimatedVO2Max(for draft: LactateTestDraft) -> VO2MaxEstimate? {
+        switch draft.sport {
+        case .running:
+            guard let lt2SpeedKmh = interpolatedMetric(atLactate: 4.0, from: runningSpeedPairs(for: draft)) else {
+                return nil
+            }
+
+            let speedMetersPerMinute = lt2SpeedKmh * 1000.0 / 60.0
+            let vo2AtThreshold = (0.2 * speedMetersPerMinute) + 3.5
+            let estimatedValue = vo2AtThreshold / 0.87
+
+            return VO2MaxEstimate(
+                value: estimatedValue,
+                methodSummary: "LT2 pace estimate"
+            )
+
+        case .cycling:
+            guard let lt2PowerWatts = interpolatedMetric(atLactate: 4.0, from: cyclingPowerPairs(for: draft)),
+                  let bodyMassKg = draft.bodyMassKg,
+                  bodyMassKg > 0 else {
+                return nil
+            }
+
+            let vo2AtThreshold = (10.8 * lt2PowerWatts / bodyMassKg) + 7.0
+            let estimatedValue = vo2AtThreshold / 0.85
+
+            return VO2MaxEstimate(
+                value: estimatedValue,
+                methodSummary: "LT2 power + weight estimate"
+            )
+        }
+    }
+
 
     func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
         let raw: [GraphPoint] = testSteps.compactMap { step in
@@ -366,4 +417,5 @@ extension ContentView {
     }
 
 }
+
 

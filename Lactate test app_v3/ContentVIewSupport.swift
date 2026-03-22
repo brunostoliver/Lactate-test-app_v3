@@ -6,6 +6,7 @@ enum ThresholdInfoTopic: String, Identifiable {
     case modifiedDmax
     case logLog
     case lt2
+    case vo2Max
 
     var id: String { rawValue }
 
@@ -21,6 +22,8 @@ enum ThresholdInfoTopic: String, Identifiable {
             return "Log-Log Breakpoint"
         case .lt2:
             return "LT2"
+        case .vo2Max:
+            return "Estimated VO2max"
         }
     }
 
@@ -36,6 +39,8 @@ enum ThresholdInfoTopic: String, Identifiable {
             return "Breakpoint from log-transformed workload and lactate curve relationships."
         case .lt2:
             return "Second lactate turnpoint, commonly estimated near 4.0 mmol/L."
+        case .vo2Max:
+            return "Estimated from LT2. Running uses flat pace cost; cycling uses power, weight, and LT2."
         }
     }
 }
@@ -168,6 +173,11 @@ struct MetricLactatePair {
 struct WorkloadThresholdResult {
     let workload: Double
     let lactate: Double
+}
+
+struct VO2MaxEstimate {
+    let value: Double
+    let methodSummary: String
 }
 
 struct LinearRegressionResult {
