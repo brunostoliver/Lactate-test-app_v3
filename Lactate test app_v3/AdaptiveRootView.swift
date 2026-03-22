@@ -167,11 +167,6 @@ private struct AthleteSplitView: View {
                 .frame(minWidth: 420, maxWidth: .infinity)
         }
         .preferredColorScheme(appearanceMode.colorScheme)
-        .onAppear {
-            if selectedAthleteID == nil {
-                selectedAthleteID = store.athletes.first?.id
-            }
-        }
         .onChange(of: selectedAthleteID) {
             editorDestination = nil
             comparisonDestination = nil
@@ -181,7 +176,7 @@ private struct AthleteSplitView: View {
                store.athletes.contains(where: { $0.id == selectedAthleteID }) {
                 return
             }
-            self.selectedAthleteID = store.athletes.first?.id
+            self.selectedAthleteID = nil
             editorDestination = nil
             comparisonDestination = nil
         }
