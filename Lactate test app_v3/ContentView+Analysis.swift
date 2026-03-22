@@ -145,6 +145,22 @@ extension ContentView {
         }
     }
 
+    func estimatedFTP(for draft: LactateTestDraft) -> FTPEstimate? {
+        guard draft.sport == .cycling,
+              let lt2PowerWatts = interpolatedMetric(atLactate: 4.0, from: cyclingPowerPairs(for: draft)) else {
+            return nil
+        }
+
+        let wattsPerKg: Double?
+        if let bodyMassKg = draft.bodyMassKg, bodyMassKg > 0 {
+            wattsPerKg = lt2PowerWatts / bodyMassKg
+        } else {
+            wattsPerKg = nil
+        }
+
+        return FTPEstimate(watts: lt2PowerWatts, wattsPerKg: wattsPerKg)
+    }
+
 
     func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
         let raw: [GraphPoint] = testSteps.compactMap { step in

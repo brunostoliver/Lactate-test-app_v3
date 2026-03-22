@@ -575,6 +575,14 @@ extension ContentView {
                         thresholdSummaryUnavailableRow(title: "LT2", infoTopic: .lt2)
                     }
 
+                    if let ftpEstimate = estimatedFTP(for: draft) {
+                        thresholdSummaryRow(
+                            title: "Estimated FTP",
+                            value: formattedFTPValue(ftpEstimate),
+                            infoTopic: .ftp
+                        )
+                    }
+
                     if let vo2MaxEstimate = estimatedVO2Max(for: draft) {
                         thresholdSummaryRow(
                             title: "Estimated VO2max",
@@ -614,6 +622,13 @@ extension ContentView {
         value: String
     ) -> some View {
         Text("\(title): \(value)")
+    }
+
+    func formattedFTPValue(_ estimate: FTPEstimate) -> String {
+        if let wattsPerKg = estimate.wattsPerKg {
+            return "\(formatPower(estimate.watts)) (\(String(format: "%.2f", wattsPerKg)) W/kg)"
+        }
+        return formatPower(estimate.watts)
     }
 
     func thresholdSummaryRow(
