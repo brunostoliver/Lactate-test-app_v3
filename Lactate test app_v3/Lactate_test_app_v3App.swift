@@ -10,11 +10,27 @@ import SwiftData
 
 @main
 struct Lactate_test_app_v3App: App {
+    private var sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            AthleteEntity.self,
+            LactateTestEntity.self,
+            LactateStepEntity.self
+        ])
+
+        let modelConfiguration = ModelConfiguration(cloudKitDatabase: .automatic)
+
+        do {
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+        } catch {
+            fatalError("Failed to create CloudKit-enabled ModelContainer: \(error)")
+        }
+    }()
+
     var body: some Scene {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [AthleteEntity.self, LactateTestEntity.self, LactateStepEntity.self])
+        .modelContainer(sharedModelContainer)
     }
 }
 

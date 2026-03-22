@@ -10,14 +10,14 @@ import SwiftData
 
 @Model
 final class AthleteEntity {
-    @Attribute(.unique) var id: UUID
-    var name: String
+    var id: UUID = UUID()
+    var name: String = ""
     var dateOfBirth: Date?
     var genderRawValue: String?
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     @Relationship(deleteRule: .cascade, inverse: \LactateTestEntity.athlete)
-    var tests: [LactateTestEntity]
+    var tests: [LactateTestEntity]?
 
     init(
         id: UUID = UUID(),
@@ -48,8 +48,8 @@ final class AthleteEntity {
 
 @Model
 final class LactateTestEntity {
-    @Attribute(.unique) var id: UUID
-    var athleteName: String
+    var id: UUID = UUID()
+    var athleteName: String = ""
     var testName: String?
     var restingLactate: Double?
     var bodyMassKg: Double?
@@ -58,13 +58,13 @@ final class LactateTestEntity {
     var humidityPercent: Double?
     var terrain: String?
     var notes: String?
-    var sportRawValue: String
-    var date: Date
+    var sportRawValue: String = Sport.running.rawValue
+    var date: Date = Date()
 
     var athlete: AthleteEntity?
 
     @Relationship(deleteRule: .cascade, inverse: \LactateStepEntity.test)
-    var steps: [LactateStepEntity]
+    var steps: [LactateStepEntity]?
 
     init(
         id: UUID = UUID(),
@@ -111,8 +111,8 @@ final class LactateTestEntity {
 
 @Model
 final class LactateStepEntity {
-    @Attribute(.unique) var id: UUID
-    var stepIndex: Int
+    var id: UUID = UUID()
+    var stepIndex: Int = 1
     var lactate: Double?
     var avgHeartRate: Int?
     var runningPaceSecondsPerKm: Int?

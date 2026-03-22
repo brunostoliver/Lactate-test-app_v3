@@ -59,6 +59,8 @@ extension LactateStep {
 extension LactateTest {
     init(entity: LactateTestEntity) {
         let mappedSteps = entity.steps
+            ?? []
+        let sortedSteps = mappedSteps
             .sorted { $0.stepIndex < $1.stepIndex }
             .map { LactateStep(entity: $0) }
 
@@ -76,7 +78,7 @@ extension LactateTest {
             notes: entity.notes,
             sport: entity.sport,
             date: entity.date,
-            steps: mappedSteps
+            steps: sortedSteps
         )
     }
 

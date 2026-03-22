@@ -99,7 +99,7 @@ final class SwiftDataTestsStore: ObservableObject {
             existing.sport = updatedTest.sport
             existing.date = updatedTest.date
 
-            for existingStep in existing.steps {
+            for existingStep in existing.steps ?? [] {
                 modelContext.delete(existingStep)
             }
 
@@ -250,7 +250,7 @@ final class SwiftDataTestsStore: ObservableObject {
             athlete.dateOfBirth = dateOfBirth
             athlete.gender = gender
 
-            for test in athlete.tests {
+            for test in athlete.tests ?? [] {
                 test.athleteName = normalizedName
             }
 
