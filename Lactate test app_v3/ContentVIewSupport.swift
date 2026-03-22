@@ -9,6 +9,7 @@ enum ThresholdInfoTopic: String, Identifiable {
     case vo2Max
     case ftp
     case raceTimes
+    case vo2Percentile
 
     var id: String { rawValue }
 
@@ -30,6 +31,8 @@ enum ThresholdInfoTopic: String, Identifiable {
             return "Estimated FTP"
         case .raceTimes:
             return "Estimated Race Times"
+        case .vo2Percentile:
+            return "Percentile"
         }
     }
 
@@ -42,7 +45,7 @@ enum ThresholdInfoTopic: String, Identifiable {
         case .modifiedDmax:
             return "Newell-style Dmax variant using a reduced, more stable curve range."
         case .logLog:
-            return "Breakpoint from log-transformed workload and lactate curve relationships."
+            return "Breakpoint from log-transformed workload and lactate curve relationships.\n\nIt may be unavailable if there are too few valid steps, missing values, or no clear breakpoint in the curve."
         case .lt2:
             return "Second lactate turnpoint, commonly estimated near 4.0 mmol/L."
         case .vo2Max:
@@ -51,6 +54,8 @@ enum ThresholdInfoTopic: String, Identifiable {
             return "Cycling-only estimate using LT2 power. Relative FTP uses test-day body mass."
         case .raceTimes:
             return "Running-only prediction from estimated VO2max. Weather, terrain, pacing, and durability can change outcomes."
+        case .vo2Percentile:
+            return "Percentile shows how your estimated VO2max compares with people of the same age and gender.\n\n50th = average\n80th = better than about 80% of peers\n90th = better than about 90% of peers\n\nThis is an estimate based on reference norms."
         }
     }
 }

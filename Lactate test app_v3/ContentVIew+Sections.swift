@@ -524,10 +524,10 @@ extension ContentView {
                     .foregroundColor(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    if let lt1 = interpolatedThresholdPoint(targetLactate: 2.0) {
+                    if let lt1Summary = thresholdSummaryValue(targetLactate: 2.0) {
                         thresholdSummaryRow(
                             title: "LT1",
-                            value: formatXAxisValue(lt1.x),
+                            value: lt1Summary,
                             infoTopic: .lt1
                         )
                     } else {
@@ -535,40 +535,42 @@ extension ContentView {
                     }
 
                     if let dmaxLactate = primaryDmaxLactate,
-                       let dmax = interpolatedThresholdPoint(targetLactate: dmaxLactate) {
+                       let dmaxSummary = thresholdSummaryValue(targetLactate: dmaxLactate, includeLactateSuffix: true) {
                         thresholdSummaryRow(
                             title: "Dmax",
-                            value: "\(formatXAxisValue(dmax.x)) - \(String(format: "%.2f", dmaxLactate)) mmol/L",
+                            value: dmaxSummary,
                             infoTopic: .dmax
                         )
                     } else {
                         thresholdSummaryUnavailableRow(title: "Dmax", infoTopic: .dmax)
                     }
 
-                    if let modified = modifiedDmaxResult {
+                    if let modified = modifiedDmaxResult,
+                       let modifiedSummary = thresholdSummaryValue(targetLactate: modified.lactate, includeLactateSuffix: true) {
                         thresholdSummaryRow(
                             title: "Modified Dmax",
-                            value: "\(formatPrimaryWorkload(modified.workload)) - \(String(format: "%.2f", modified.lactate)) mmol/L",
+                            value: modifiedSummary,
                             infoTopic: .modifiedDmax
                         )
                     } else {
                         thresholdSummaryUnavailableRow(title: "Modified Dmax", infoTopic: .modifiedDmax)
                     }
 
-                    if let logLog = logLogBreakpointResult {
+                    if let logLog = logLogBreakpointResult,
+                       let logLogSummary = thresholdSummaryValue(targetLactate: logLog.lactate, includeLactateSuffix: true) {
                         thresholdSummaryRow(
                             title: "Log-Log",
-                            value: "\(formatPrimaryWorkload(logLog.workload)) - \(String(format: "%.2f", logLog.lactate)) mmol/L",
+                            value: logLogSummary,
                             infoTopic: .logLog
                         )
                     } else {
                         thresholdSummaryUnavailableRow(title: "Log-Log", infoTopic: .logLog)
                     }
 
-                    if let lt2 = interpolatedThresholdPoint(targetLactate: 4.0) {
+                    if let lt2Summary = thresholdSummaryValue(targetLactate: 4.0) {
                         thresholdSummaryRow(
                             title: "LT2",
-                            value: formatXAxisValue(lt2.x),
+                            value: lt2Summary,
                             infoTopic: .lt2
                         )
                     } else {
@@ -593,16 +595,19 @@ extension ContentView {
                         if let classification = currentVO2Classification {
                             thresholdSummaryTextRow(
                                 title: "Percentile",
-                                value: "\(classification.percentile)th"
+                                value: "\(classification.percentile)th",
+                                infoTopic: .vo2Percentile
                             )
                             thresholdSummaryTextRow(
                                 title: "Classification",
-                                value: classification.classification.rawValue
+                                value: classification.classification.rawValue,
+                                infoTopic: .vo2Max
                             )
                         } else {
                             thresholdSummaryTextRow(
                                 title: "Classification",
-                                value: "Add athlete DOB and gender"
+                                value: "Add athlete DOB and gender",
+                                infoTopic: .vo2Max
                             )
                         }
                     } else {
@@ -620,9 +625,22 @@ extension ContentView {
 
     func thresholdSummaryTextRow(
         title: String,
-        value: String
+        value: String,
+        infoTopic: ThresholdInfoTopic? = nil
     ) -> some View {
-        Text(value.isEmpty ? title : "\(title): \(value)")
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(value.isEmpty ? title : "\(title): \(value)")
+
+            if let infoTopic {
+                Button(action: {
+                    activeThresholdInfoTopic = infoTopic
+                }) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     func thresholdSummaryIndentedTextRow(
@@ -892,13 +910,13 @@ extension ContentView {
                             Text(test.athleteName)
                             Text(shortDateString(test.date))
 
-                            if isLoaded(test) {
-                                Text("Loaded")
+                            if isActivelyViewedOrEdited(test) {
+                                Text("Viewing")
                                     .font(.caption2)
                                     .fontWeight(.semibold)
-                                    .padding(.horizontal, 8)
+                                    .padding(.horizontal, 10)
                                     .padding(.vertical, 3)
-                                    .background(Color.orange.opacity(0.25))
+                                    .background(Color.blue.opacity(0.18))
                                     .cornerRadius(6)
                             }
                         }
@@ -962,7 +980,11 @@ extension ContentView {
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
-                    .background(isLoaded(test) ? Color.orange.opacity(0.08) : Color.clear)
+                    .background(isActivelyViewedOrEdited(test) ? Color.blue.opacity(0.08) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(isActivelyViewedOrEdited(test) ? Color.blue.opacity(0.35) : Color.clear, lineWidth: 1)
+                    )
                     .cornerRadius(8)
                 }
             }

@@ -855,6 +855,17 @@ struct ContentView: View {
         editingTest?.id == test.id && loadedTestMode == .editing
     }
 
+    var activeEditorTestID: UUID? {
+        if let externalEditorDestination = externalEditorDestination?.wrappedValue {
+            return externalEditorDestination.test?.id
+        }
+        return editorDestination?.test?.id ?? (loadedTestMode == .editing ? editingTest?.id : nil)
+    }
+
+    func isActivelyViewedOrEdited(_ test: LactateTest) -> Bool {
+        activeEditorTestID == test.id
+    }
+
     func isComparisonBase(_ test: LactateTest) -> Bool {
         if let externalComparisonDestination = externalComparisonDestination?.wrappedValue {
             return externalComparisonDestination.baseTestID == test.id
@@ -1357,6 +1368,8 @@ struct ContentView: View {
         switch topic {
         case .vo2Max:
             return vo2ClassificationInfoMessage
+        case .vo2Percentile:
+            return topic.defaultMessage
         default:
             return topic.defaultMessage
         }

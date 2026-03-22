@@ -91,7 +91,8 @@ extension ContentView {
             "Superior: >\(String(format: "%.1f", bands[8].value))"
         ]
 
-        return "\(gender.title), age \(age), norms \(table.ageRange.lowerBound)-\(table.ageRange.upperBound): " + ranges.joined(separator: "; ")
+        return ([ "\(gender.title), age \(age), norms \(table.ageRange.lowerBound)-\(table.ageRange.upperBound)" ] + ranges)
+            .joined(separator: "\n")
     }
 
     func runningSpeedPairs(for draft: LactateTestDraft) -> [MetricLactatePair] {
@@ -104,11 +105,67 @@ extension ContentView {
         }
     }
 
+    func heartRatePairs(for draft: LactateTestDraft) -> [MetricLactatePair] {
+        draft.steps.compactMap { step -> MetricLactatePair? in
+            guard let heartRate = step.avgHeartRate,
+                  let lactate = step.lactate else { return nil }
+            return MetricLactatePair(metric: Double(heartRate), lactate: lactate)
+        }
+    }
+
     func cyclingPowerPairs(for draft: LactateTestDraft) -> [MetricLactatePair] {
         draft.steps.compactMap { step -> MetricLactatePair? in
             guard let power = step.powerWatts,
                   let lactate = step.lactate else { return nil }
             return MetricLactatePair(metric: Double(power), lactate: lactate)
+        }
+    }
+
+    func thresholdSummaryValue(targetLactate: Double, includeLactateSuffix: Bool = false) -> String? {
+        switch draft.sport {
+        case .running:
+            var parts: [String] = []
+
+            if let speedKmh = interpolatedMetric(atLactate: targetLactate, from: runningSpeedPairs(for: draft)),
+               speedKmh > 0 {
+                let paceSecondsPerKm = 3600.0 / speedKmh
+                parts.append(formatPace(paceSecondsPerKm))
+            }
+
+            if let heartRate = interpolatedMetric(atLactate: targetLactate, from: heartRatePairs(for: draft)) {
+                parts.append(formatHeartRate(heartRate))
+            }
+
+            if let power = interpolatedMetric(atLactate: targetLactate, from: cyclingPowerPairs(for: draft)) {
+                parts.append(formatPower(power))
+            }
+
+            guard !parts.isEmpty else { return nil }
+
+            if includeLactateSuffix {
+                parts.append(String(format: "%.2f mmol/L", targetLactate))
+            }
+
+            return parts.joined(separator: " | ")
+
+        case .cycling:
+            var parts: [String] = []
+
+            if let heartRate = interpolatedMetric(atLactate: targetLactate, from: heartRatePairs(for: draft)) {
+                parts.append(formatHeartRate(heartRate))
+            }
+
+            if let power = interpolatedMetric(atLactate: targetLactate, from: cyclingPowerPairs(for: draft)) {
+                parts.append(formatPower(power))
+            }
+
+            guard !parts.isEmpty else { return nil }
+
+            if includeLactateSuffix {
+                parts.append(String(format: "%.2f mmol/L", targetLactate))
+            }
+
+            return parts.joined(separator: " | ")
         }
     }
 
