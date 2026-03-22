@@ -608,6 +608,7 @@ extension ContentView {
                     } else {
                         thresholdSummaryUnavailableRow(title: "Estimated VO2max", infoTopic: .vo2Max)
                     }
+
                 }
                 .font(.caption)
                 .padding(8)
@@ -621,7 +622,14 @@ extension ContentView {
         title: String,
         value: String
     ) -> some View {
-        Text("\(title): \(value)")
+        Text(value.isEmpty ? title : "\(title): \(value)")
+    }
+
+    func thresholdSummaryIndentedTextRow(
+        title: String,
+        value: String
+    ) -> some View {
+        Text("  \(title): \(value)")
     }
 
     func formattedFTPValue(_ estimate: FTPEstimate) -> String {
@@ -724,6 +732,43 @@ extension ContentView {
                 cyclingSpeedFiveZones == nil {
                 Text("Not enough data to calculate 5-zone training ranges.")
                     .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    var racePredictionsSection: some View {
+        if draft.sport == .running && !estimatedRacePredictions.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Divider()
+
+                HStack {
+                    Text("Estimated Race Times")
+                        .font(.headline)
+
+                    Spacer()
+
+                    Button(action: {
+                        activeThresholdInfoTopic = .raceTimes
+                    }) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(estimatedRacePredictions) { prediction in
+                        thresholdSummaryTextRow(
+                            title: prediction.title,
+                            value: formatRaceTime(minutes: prediction.timeMinutes)
+                        )
+                    }
+                }
+                .font(.caption)
+                .padding(8)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(8)
             }
         }
     }

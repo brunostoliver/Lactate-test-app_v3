@@ -460,6 +460,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     thresholdsSection
                     trainingZonesSection
+                    racePredictionsSection
                 }
                 .frame(width: 320, alignment: .topLeading)
             }
@@ -472,6 +473,7 @@ struct ContentView: View {
                 graphSection
                 thresholdsSection
                 trainingZonesSection
+                racePredictionsSection
             }
         }
     }

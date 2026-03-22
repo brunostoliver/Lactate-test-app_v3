@@ -83,6 +83,20 @@ extension ContentView {
         return formatter.string(from: date)
     }
 
+    func formatRaceTime(minutes: Double) -> String {
+        let totalSeconds = max(0, Int((minutes * 60.0).rounded()))
+        let hours = totalSeconds / 3600
+        let remainingSeconds = totalSeconds % 3600
+        let mins = remainingSeconds / 60
+        let secs = remainingSeconds % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, mins, secs)
+        }
+
+        return String(format: "%d:%02d", mins, secs)
+    }
+
     func testLabel(for test: LactateTest) -> String {
         test.resolvedTestName
     }

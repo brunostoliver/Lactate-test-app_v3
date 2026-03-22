@@ -161,6 +161,89 @@ extension ContentView {
         return FTPEstimate(watts: lt2PowerWatts, wattsPerKg: wattsPerKg)
     }
 
+    func danielsVelocityDemand(for metersPerMinute: Double) -> Double {
+        -4.60 + (0.182258 * metersPerMinute) + (0.000104 * metersPerMinute * metersPerMinute)
+    }
+
+    func danielsFractionOfVO2Max(for timeMinutes: Double) -> Double {
+        0.8
+        + 0.1894393 * exp(-0.012778 * timeMinutes)
+        + 0.2989558 * exp(-0.1932605 * timeMinutes)
+    }
+
+    func predictedRaceTimeMinutes(distanceMeters: Double, vo2Max: Double) -> Double? {
+        guard vo2Max > 0 else { return nil }
+
+        var low = 8.0
+        var high = 360.0
+
+        func modelDifference(timeMinutes: Double) -> Double {
+            let velocity = distanceMeters / timeMinutes
+            let demand = danielsVelocityDemand(for: velocity)
+            let fraction = danielsFractionOfVO2Max(for: timeMinutes)
+            return demand / fraction - vo2Max
+        }
+
+        var lowDifference = modelDifference(timeMinutes: low)
+        var highDifference = modelDifference(timeMinutes: high)
+
+        guard lowDifference >= 0 else { return nil }
+
+        while highDifference > 0 && high < 720 {
+            high *= 1.5
+            highDifference = modelDifference(timeMinutes: high)
+        }
+
+        guard highDifference <= 0 else { return nil }
+
+        for _ in 0..<80 {
+            let mid = (low + high) / 2.0
+            let midDifference = modelDifference(timeMinutes: mid)
+
+            if abs(midDifference) < 0.0001 {
+                return mid
+            }
+
+            if midDifference > 0 {
+                low = mid
+                lowDifference = midDifference
+            } else {
+                high = mid
+            }
+        }
+
+        return (low + high) / 2.0
+    }
+
+    var estimatedRacePredictions: [RaceTimePrediction] {
+        guard draft.sport == .running,
+              let vo2Estimate = estimatedVO2Max(for: draft) else {
+            return []
+        }
+
+        let effectiveVDOT = vo2Estimate.value * runningRacePredictionVDOTFactor
+
+        let races: [(String, Double)] = [
+            ("5K", 5_000),
+            ("10K", 10_000),
+            ("Half Marathon", 21_097.5),
+            ("Marathon", 42_195)
+        ]
+
+        return races.compactMap { title, distance in
+            guard let predictedMinutes = predictedRaceTimeMinutes(distanceMeters: distance, vo2Max: effectiveVDOT) else {
+                return nil
+            }
+
+            return RaceTimePrediction(
+                id: title,
+                title: title,
+                distanceMeters: distance,
+                timeMinutes: predictedMinutes
+            )
+        }
+    }
+
 
     func graphPoints(for testSteps: [LactateStep], seriesLabel: String, seriesColor: Color) -> [GraphPoint] {
         let raw: [GraphPoint] = testSteps.compactMap { step in

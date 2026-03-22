@@ -8,6 +8,7 @@ enum ThresholdInfoTopic: String, Identifiable {
     case lt2
     case vo2Max
     case ftp
+    case raceTimes
 
     var id: String { rawValue }
 
@@ -27,6 +28,8 @@ enum ThresholdInfoTopic: String, Identifiable {
             return "Estimated VO2max"
         case .ftp:
             return "Estimated FTP"
+        case .raceTimes:
+            return "Estimated Race Times"
         }
     }
 
@@ -46,6 +49,8 @@ enum ThresholdInfoTopic: String, Identifiable {
             return "Estimated from LT2. Running uses flat pace cost; cycling uses power, weight, and LT2."
         case .ftp:
             return "Cycling-only estimate using LT2 power. Relative FTP uses test-day body mass."
+        case .raceTimes:
+            return "Running-only prediction from estimated VO2max. Weather, terrain, pacing, and durability can change outcomes."
         }
     }
 }
@@ -190,6 +195,15 @@ struct FTPEstimate {
     let wattsPerKg: Double?
 }
 
+struct RaceTimePrediction: Identifiable {
+    let id: String
+    let title: String
+    let distanceMeters: Double
+    let timeMinutes: Double
+}
+
+let runningRacePredictionVDOTFactor = 0.96
+
 enum VO2ClassificationLabel: String {
     case poor = "Poor"
     case fair = "Fair"
@@ -261,6 +275,4 @@ struct ShareItem: Identifiable {
     let url: URL
 }
 
-#Preview {
-    
-}
+
