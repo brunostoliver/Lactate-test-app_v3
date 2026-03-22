@@ -17,7 +17,9 @@ struct Lactate_test_app_v3App: App {
             LactateStepEntity.self
         ])
 
-        let modelConfiguration = ModelConfiguration(cloudKitDatabase: .automatic)
+        let modelConfiguration = ModelConfiguration(
+            cloudKitDatabase: .private("iCloud.PRhealthier.LactateApp")
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
