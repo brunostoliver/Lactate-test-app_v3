@@ -27,7 +27,7 @@ enum ThresholdInfoTopic: String, Identifiable {
         }
     }
 
-    var message: String {
+    var defaultMessage: String {
         switch self {
         case .lt1:
             return "First lactate turnpoint, commonly estimated near 2.0 mmol/L."
@@ -179,6 +179,59 @@ struct VO2MaxEstimate {
     let value: Double
     let methodSummary: String
 }
+
+enum VO2ClassificationLabel: String {
+    case poor = "Poor"
+    case fair = "Fair"
+    case average = "Average"
+    case good = "Good"
+    case excellent = "Excellent"
+    case superior = "Superior"
+}
+
+struct VO2PercentileBand {
+    let percentile: Int
+    let value: Double
+}
+
+struct VO2NormTable {
+    let ageRange: ClosedRange<Int>
+    let maleBands: [VO2PercentileBand]
+    let femaleBands: [VO2PercentileBand]
+}
+
+struct VO2ClassificationResult {
+    let percentile: Int
+    let classification: VO2ClassificationLabel
+}
+
+let vo2NormTables: [VO2NormTable] = [
+    VO2NormTable(
+        ageRange: 20...29,
+        maleBands: [.init(percentile: 10, value: 35.2), .init(percentile: 20, value: 39.5), .init(percentile: 30, value: 40.3), .init(percentile: 40, value: 42.2), .init(percentile: 50, value: 43.9), .init(percentile: 60, value: 45.7), .init(percentile: 70, value: 48.2), .init(percentile: 80, value: 51.1), .init(percentile: 90, value: 54.0)],
+        femaleBands: [.init(percentile: 10, value: 29.4), .init(percentile: 20, value: 31.6), .init(percentile: 30, value: 33.8), .init(percentile: 40, value: 35.5), .init(percentile: 50, value: 37.4), .init(percentile: 60, value: 39.5), .init(percentile: 70, value: 41.1), .init(percentile: 80, value: 44.0), .init(percentile: 90, value: 47.5)]
+    ),
+    VO2NormTable(
+        ageRange: 30...39,
+        maleBands: [.init(percentile: 10, value: 33.8), .init(percentile: 20, value: 36.7), .init(percentile: 30, value: 38.5), .init(percentile: 40, value: 41.0), .init(percentile: 50, value: 42.4), .init(percentile: 60, value: 44.4), .init(percentile: 70, value: 46.8), .init(percentile: 80, value: 48.9), .init(percentile: 90, value: 52.5)],
+        femaleBands: [.init(percentile: 10, value: 27.4), .init(percentile: 20, value: 29.9), .init(percentile: 30, value: 32.3), .init(percentile: 40, value: 33.8), .init(percentile: 50, value: 35.2), .init(percentile: 60, value: 36.7), .init(percentile: 70, value: 38.8), .init(percentile: 80, value: 41.0), .init(percentile: 90, value: 44.7)]
+    ),
+    VO2NormTable(
+        ageRange: 40...49,
+        maleBands: [.init(percentile: 10, value: 31.8), .init(percentile: 20, value: 34.6), .init(percentile: 30, value: 36.7), .init(percentile: 40, value: 38.4), .init(percentile: 50, value: 40.4), .init(percentile: 60, value: 42.4), .init(percentile: 70, value: 44.2), .init(percentile: 80, value: 46.8), .init(percentile: 90, value: 51.1)],
+        femaleBands: [.init(percentile: 10, value: 25.6), .init(percentile: 20, value: 28.0), .init(percentile: 30, value: 29.7), .init(percentile: 40, value: 31.6), .init(percentile: 50, value: 33.3), .init(percentile: 60, value: 35.1), .init(percentile: 70, value: 36.7), .init(percentile: 80, value: 38.9), .init(percentile: 90, value: 42.4)]
+    ),
+    VO2NormTable(
+        ageRange: 50...59,
+        maleBands: [.init(percentile: 10, value: 28.4), .init(percentile: 20, value: 31.1), .init(percentile: 30, value: 33.2), .init(percentile: 40, value: 35.2), .init(percentile: 50, value: 36.7), .init(percentile: 60, value: 38.3), .init(percentile: 70, value: 41.0), .init(percentile: 80, value: 43.3), .init(percentile: 90, value: 46.8)],
+        femaleBands: [.init(percentile: 10, value: 23.7), .init(percentile: 20, value: 25.5), .init(percentile: 30, value: 27.3), .init(percentile: 40, value: 28.7), .init(percentile: 50, value: 30.2), .init(percentile: 60, value: 31.4), .init(percentile: 70, value: 32.9), .init(percentile: 80, value: 35.2), .init(percentile: 90, value: 38.1)]
+    ),
+    VO2NormTable(
+        ageRange: 60...69,
+        maleBands: [.init(percentile: 10, value: 24.1), .init(percentile: 20, value: 27.4), .init(percentile: 30, value: 29.4), .init(percentile: 40, value: 31.4), .init(percentile: 50, value: 33.1), .init(percentile: 60, value: 35.0), .init(percentile: 70, value: 36.7), .init(percentile: 80, value: 39.5), .init(percentile: 90, value: 43.2)],
+        femaleBands: [.init(percentile: 10, value: 21.7), .init(percentile: 20, value: 23.7), .init(percentile: 30, value: 24.9), .init(percentile: 40, value: 26.6), .init(percentile: 50, value: 27.5), .init(percentile: 60, value: 29.1), .init(percentile: 70, value: 30.2), .init(percentile: 80, value: 32.3), .init(percentile: 90, value: 34.6)]
+    )
+]
 
 struct LinearRegressionResult {
     let intercept: Double

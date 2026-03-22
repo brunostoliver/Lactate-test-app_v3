@@ -578,9 +578,25 @@ extension ContentView {
                     if let vo2MaxEstimate = estimatedVO2Max(for: draft) {
                         thresholdSummaryRow(
                             title: "Estimated VO2max",
-                            value: "\(String(format: "%.1f", vo2MaxEstimate.value)) mL/kg/min (\(vo2MaxEstimate.methodSummary))",
+                            value: "\(String(format: "%.1f", vo2MaxEstimate.value)) mL/kg/min",
                             infoTopic: .vo2Max
                         )
+
+                        if let classification = currentVO2Classification {
+                            thresholdSummaryTextRow(
+                                title: "Percentile",
+                                value: "\(classification.percentile)th"
+                            )
+                            thresholdSummaryTextRow(
+                                title: "Classification",
+                                value: classification.classification.rawValue
+                            )
+                        } else {
+                            thresholdSummaryTextRow(
+                                title: "Classification",
+                                value: "Add athlete DOB and gender"
+                            )
+                        }
                     } else {
                         thresholdSummaryUnavailableRow(title: "Estimated VO2max", infoTopic: .vo2Max)
                     }
@@ -591,6 +607,13 @@ extension ContentView {
                 .cornerRadius(8)
             }
         }
+    }
+
+    func thresholdSummaryTextRow(
+        title: String,
+        value: String
+    ) -> some View {
+        Text("\(title): \(value)")
     }
 
     func thresholdSummaryRow(

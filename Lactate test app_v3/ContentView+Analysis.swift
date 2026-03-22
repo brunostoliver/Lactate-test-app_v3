@@ -2,6 +2,98 @@ import SwiftUI
 
 extension ContentView {
 
+    var athleteAge: Int? {
+        guard let dateOfBirth = currentSelectedAthlete?.dateOfBirth else { return nil }
+        return Calendar.current.dateComponents([.year], from: dateOfBirth, to: draft.date).year
+    }
+
+    var activeVO2NormTable: VO2NormTable? {
+        guard let age = athleteAge else { return nil }
+        return vo2NormTables.first(where: { $0.ageRange.contains(age) })
+    }
+
+    func vo2Bands(for gender: AthleteGender, table: VO2NormTable) -> [VO2PercentileBand] {
+        switch gender {
+        case .male:
+            return table.maleBands
+        case .female:
+            return table.femaleBands
+        }
+    }
+
+    func vo2Classification(for vo2Max: Double, age: Int, gender: AthleteGender) -> VO2ClassificationResult? {
+        guard let table = vo2NormTables.first(where: { $0.ageRange.contains(age) }) else { return nil }
+        let bands = vo2Bands(for: gender, table: table)
+        guard let firstBand = bands.first, let lastBand = bands.last else { return nil }
+
+        let percentile: Int
+        if vo2Max <= firstBand.value {
+            percentile = 10
+        } else if vo2Max >= lastBand.value {
+            percentile = 90
+        } else {
+            var computedPercentile = 10
+            for index in 0..<(bands.count - 1) {
+                let lower = bands[index]
+                let upper = bands[index + 1]
+                if vo2Max >= lower.value && vo2Max <= upper.value {
+                    let fraction = (vo2Max - lower.value) / (upper.value - lower.value)
+                    computedPercentile = Int((Double(lower.percentile) + fraction * Double(upper.percentile - lower.percentile)).rounded())
+                    break
+                }
+            }
+            percentile = computedPercentile
+        }
+
+        let classification: VO2ClassificationLabel
+        switch percentile {
+        case ..<20:
+            classification = .poor
+        case 20..<40:
+            classification = .fair
+        case 40..<60:
+            classification = .average
+        case 60..<80:
+            classification = .good
+        case 80..<90:
+            classification = .excellent
+        default:
+            classification = .superior
+        }
+
+        return VO2ClassificationResult(percentile: percentile, classification: classification)
+    }
+
+    var currentVO2Classification: VO2ClassificationResult? {
+        guard let vo2Estimate = estimatedVO2Max(for: draft),
+              let age = athleteAge,
+              let gender = currentSelectedAthlete?.gender else {
+            return nil
+        }
+
+        return vo2Classification(for: vo2Estimate.value, age: age, gender: gender)
+    }
+
+    var vo2ClassificationInfoMessage: String {
+        guard let age = athleteAge,
+              let gender = currentSelectedAthlete?.gender,
+              let table = activeVO2NormTable else {
+            return "Classification requires athlete date of birth and gender, with norms currently supported for ages 20 to 69."
+        }
+
+        let bands = vo2Bands(for: gender, table: table)
+        let ranges = [
+            "Poor: <\(String(format: "%.1f", bands[1].value))",
+            "Fair: \(String(format: "%.1f", bands[1].value))-\(String(format: "%.1f", bands[3].value))",
+            "Average: \(String(format: "%.1f", bands[3].value))-\(String(format: "%.1f", bands[5].value))",
+            "Good: \(String(format: "%.1f", bands[5].value))-\(String(format: "%.1f", bands[7].value))",
+            "Excellent: \(String(format: "%.1f", bands[7].value))-\(String(format: "%.1f", bands[8].value))",
+            "Superior: >\(String(format: "%.1f", bands[8].value))"
+        ]
+
+        return "\(gender.title), age \(age), norms \(table.ageRange.lowerBound)-\(table.ageRange.upperBound): " + ranges.joined(separator: "; ")
+    }
+
     func runningSpeedPairs(for draft: LactateTestDraft) -> [MetricLactatePair] {
         draft.steps.compactMap { step -> MetricLactatePair? in
             guard let paceSeconds = step.runningPaceSecondsPerKm,

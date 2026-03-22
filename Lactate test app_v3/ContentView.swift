@@ -249,7 +249,7 @@ struct ContentView: View {
         .alert(item: $activeThresholdInfoTopic) { topic in
             Alert(
                 title: Text(topic.title),
-                message: Text(topic.message),
+                message: Text(thresholdInfoMessage(for: topic)),
                 dismissButton: .cancel(Text("OK"))
             )
         }
@@ -1348,6 +1348,15 @@ struct ContentView: View {
         if force || draft.athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             draft.athleteID = selectedAthlete.id
             draft.athleteName = selectedAthlete.name
+        }
+    }
+
+    func thresholdInfoMessage(for topic: ThresholdInfoTopic) -> String {
+        switch topic {
+        case .vo2Max:
+            return vo2ClassificationInfoMessage
+        default:
+            return topic.defaultMessage
         }
     }
 
