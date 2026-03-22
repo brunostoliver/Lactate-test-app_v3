@@ -53,7 +53,10 @@ private struct RootView: View {
         swiftDataStore.configure(with: modelContext)
 
         do {
+            print("CloudKit-backed SwiftData container initialized.")
             let swiftDataTests = try MigrationService.loadAllSwiftDataTests(from: modelContext)
+            let swiftDataAthletes = try MigrationService.loadAllSwiftDataAthletes(from: modelContext)
+            print("SwiftData active athlete count: \(swiftDataAthletes.count)")
             print("SwiftData active store count: \(swiftDataTests.count)")
         } catch {
             print("SwiftData setup failed: \(error)")

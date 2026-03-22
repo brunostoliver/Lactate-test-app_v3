@@ -59,6 +59,7 @@ final class SwiftDataTestsStore: ObservableObject {
             modelContext.insert(entity)
 
             try modelContext.save()
+            print("Saved test locally: \(entity.id) | athlete=\(entity.athleteName) | test=\(entity.testName ?? "<unnamed>")")
             reload()
         } catch {
             print("Failed to save SwiftData test: \(error)")
@@ -114,6 +115,7 @@ final class SwiftDataTestsStore: ObservableObject {
             existing.steps = replacementSteps
 
             try modelContext.save()
+            print("Updated test locally: \(existing.id) | athlete=\(existing.athleteName) | test=\(existing.testName ?? "<unnamed>")")
             reload()
         } catch {
             print("Failed to update SwiftData test: \(error)")
@@ -206,6 +208,7 @@ final class SwiftDataTestsStore: ObservableObject {
                 existing.dateOfBirth = dateOfBirth
                 existing.gender = gender
                 try modelContext.save()
+                print("Updated existing athlete locally during append: \(existing.id) | name=\(existing.name)")
                 reload()
                 return Athlete(entity: existing)
             }
@@ -217,6 +220,7 @@ final class SwiftDataTestsStore: ObservableObject {
             )
             modelContext.insert(athlete)
             try modelContext.save()
+            print("Saved athlete locally: \(athlete.id) | name=\(athlete.name)")
             reload()
             return Athlete(entity: athlete)
         } catch {
@@ -255,6 +259,7 @@ final class SwiftDataTestsStore: ObservableObject {
             }
 
             try modelContext.save()
+            print("Updated athlete locally: \(athlete.id) | name=\(athlete.name)")
             reload()
         } catch {
             print("Failed to update athlete: \(error)")
@@ -277,6 +282,7 @@ final class SwiftDataTestsStore: ObservableObject {
 
             modelContext.delete(athlete)
             try modelContext.save()
+            print("Deleted athlete locally: \(athlete.id) | name=\(athlete.name)")
             reload()
         } catch {
             print("Failed to delete athlete: \(error)")
