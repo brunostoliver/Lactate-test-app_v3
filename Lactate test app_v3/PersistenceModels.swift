@@ -52,6 +52,7 @@ final class LactateTestEntity {
     var athleteName: String
     var testName: String?
     var restingLactate: Double?
+    var bodyMassKg: Double?
     var temperatureCelsius: Double?
     var temperatureUnitRawValue: String?
     var humidityPercent: Double?
@@ -70,6 +71,7 @@ final class LactateTestEntity {
         athleteName: String,
         testName: String? = nil,
         restingLactate: Double? = nil,
+        bodyMassKg: Double? = nil,
         temperatureCelsius: Double? = nil,
         temperatureUnitRawValue: String? = TemperatureUnit.celsius.rawValue,
         humidityPercent: Double? = nil,
@@ -84,6 +86,7 @@ final class LactateTestEntity {
         self.athleteName = athleteName
         self.testName = testName
         self.restingLactate = restingLactate
+        self.bodyMassKg = bodyMassKg
         self.temperatureCelsius = temperatureCelsius
         self.temperatureUnitRawValue = temperatureUnitRawValue
         self.humidityPercent = humidityPercent

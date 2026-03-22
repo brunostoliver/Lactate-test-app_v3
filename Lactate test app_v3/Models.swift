@@ -108,6 +108,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
     var athleteName: String
     var testName: String?
     var restingLactate: Double?
+    var bodyMassKg: Double?
     var temperatureCelsius: Double?
     var temperatureUnit: TemperatureUnit
     var humidityPercent: Double?
@@ -123,6 +124,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         athleteName: String,
         testName: String? = nil,
         restingLactate: Double? = nil,
+        bodyMassKg: Double? = nil,
         temperatureCelsius: Double? = nil,
         temperatureUnit: TemperatureUnit = .celsius,
         humidityPercent: Double? = nil,
@@ -137,6 +139,7 @@ struct LactateTest: Identifiable, Codable, Hashable {
         self.athleteName = athleteName
         self.testName = testName
         self.restingLactate = restingLactate
+        self.bodyMassKg = bodyMassKg
         self.temperatureCelsius = temperatureCelsius
         self.temperatureUnit = temperatureUnit
         self.humidityPercent = humidityPercent
@@ -169,6 +172,7 @@ struct LactateTestDraft {
     var athleteName: String
     var testName: String
     var restingLactate: Double?
+    var bodyMassKg: Double?
     var temperatureCelsius: Double?
     var temperatureUnit: TemperatureUnit
     var humidityPercent: Double?
@@ -183,6 +187,7 @@ struct LactateTestDraft {
         athleteName: String = "",
         testName: String = "",
         restingLactate: Double? = nil,
+        bodyMassKg: Double? = nil,
         temperatureCelsius: Double? = nil,
         temperatureUnit: TemperatureUnit = .celsius,
         humidityPercent: Double? = nil,
@@ -196,6 +201,7 @@ struct LactateTestDraft {
         self.athleteName = athleteName
         self.testName = testName
         self.restingLactate = restingLactate
+        self.bodyMassKg = bodyMassKg
         self.temperatureCelsius = temperatureCelsius
         self.temperatureUnit = temperatureUnit
         self.humidityPercent = humidityPercent
@@ -216,6 +222,7 @@ struct LactateTestDraft {
             athleteName: athleteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Athlete" : athleteName,
             testName: LactateTest.normalizedTestName(testName, sport: sport, date: date),
             restingLactate: restingLactate,
+            bodyMassKg: bodyMassKg,
             temperatureCelsius: temperatureCelsius,
             temperatureUnit: temperatureUnit,
             humidityPercent: humidityPercent,

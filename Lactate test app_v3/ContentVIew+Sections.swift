@@ -45,6 +45,28 @@ extension ContentView {
     }
 
     @ViewBuilder
+    var bodyMassSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Weight")
+                .font(.headline)
+
+            HStack(spacing: 12) {
+                TextField(unitPreference == .metric ? "kg" : "lb", text: bodyMassStringBinding())
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                Text(unitPreference == .metric ? "kg" : "lb")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            Text("Optional, but required for VO2max calculations.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    @ViewBuilder
     var environmentFieldsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Environment")
@@ -237,8 +259,6 @@ extension ContentView {
             .pickerStyle(SegmentedPickerStyle())
 
             DatePicker("Date", selection: $draft.date, displayedComponents: .date)
-
-            Divider()
 
             if usesWideEditorFormLayout {
                 HStack(alignment: .top, spacing: 16) {

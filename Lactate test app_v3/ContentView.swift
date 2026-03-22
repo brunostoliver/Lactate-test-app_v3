@@ -166,6 +166,7 @@ struct ContentView: View {
                     athleteName: $0.athleteName,
                     testName: $0.resolvedTestName,
                     restingLactate: $0.restingLactate,
+                    bodyMassKg: $0.bodyMassKg,
                     temperatureCelsius: $0.temperatureCelsius,
                     temperatureUnit: $0.temperatureUnit,
                     humidityPercent: $0.humidityPercent,
@@ -577,6 +578,7 @@ struct ContentView: View {
                         }
 
                         if isEditorScreen {
+                            bodyMassSection
                             formSection
                         }
 
@@ -833,6 +835,7 @@ struct ContentView: View {
             athleteName: test.athleteName,
             testName: test.resolvedTestName,
             restingLactate: test.restingLactate,
+            bodyMassKg: test.bodyMassKg,
             temperatureCelsius: test.temperatureCelsius,
             temperatureUnit: test.temperatureUnit,
             humidityPercent: test.humidityPercent,
@@ -1289,6 +1292,47 @@ struct ContentView: View {
                 }
 
                 draft.humidityPercent = max(0.0, min(100.0, enteredValue))
+            }
+        )
+    }
+
+    func bodyMassStringBinding() -> Binding<String> {
+        Binding(
+            get: {
+                guard let bodyMassKg = draft.bodyMassKg else { return "" }
+
+                let displayedValue: Double
+                switch unitPreference {
+                case .metric:
+                    displayedValue = bodyMassKg
+                case .imperial:
+                    displayedValue = bodyMassKg * 2.2046226218
+                }
+
+                return String(format: "%.1f", displayedValue)
+            },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !trimmed.isEmpty else {
+                    draft.bodyMassKg = nil
+                    return
+                }
+
+                guard let enteredValue = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else {
+                    draft.bodyMassKg = nil
+                    return
+                }
+
+                let normalizedKg: Double
+                switch unitPreference {
+                case .metric:
+                    normalizedKg = enteredValue
+                case .imperial:
+                    normalizedKg = enteredValue / 2.2046226218
+                }
+
+                draft.bodyMassKg = max(0.0, normalizedKg)
             }
         )
     }
