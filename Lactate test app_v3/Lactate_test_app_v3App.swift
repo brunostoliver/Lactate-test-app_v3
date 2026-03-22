@@ -36,6 +36,7 @@ struct Lactate_test_app_v3App: App {
 
 private struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var swiftDataStore = SwiftDataTestsStore()
     @State private var didSetUpStore = false
 
@@ -45,6 +46,11 @@ private struct RootView: View {
                 guard !didSetUpStore else { return }
                 didSetUpStore = true
                 setUpSwiftDataStore()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard newPhase == .active, didSetUpStore else { return }
+                print("Scene became active. Reloading SwiftData store.")
+                swiftDataStore.reload()
             }
     }
 

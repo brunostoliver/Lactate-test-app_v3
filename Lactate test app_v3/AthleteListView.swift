@@ -41,6 +41,12 @@ struct AthleteListView: View {
                         } label: {
                             Label("New Athlete", systemImage: "person.badge.plus")
                         }
+
+                        Button {
+                            store.reload()
+                        } label: {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                        }
                     }
 
                     Section("Select Existing Athlete") {
