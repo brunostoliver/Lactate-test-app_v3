@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
 
 @main
 struct Lactate_test_app_v3App: App {
@@ -41,6 +42,7 @@ private struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var swiftDataStore = SwiftDataTestsStore()
     @State private var didSetUpStore = false
+    @State private var showSavedToast = false
 
     var body: some View {
         AdaptiveRootView(store: swiftDataStore)
@@ -54,6 +56,32 @@ private struct RootView: View {
                 print("Scene became active. Reloading SwiftData store.")
                 swiftDataStore.reload()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+                guard didSetUpStore else { return }
+                print("Received remote persistent store change. Reloading SwiftData store.")
+                swiftDataStore.reload()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .lactateTestDidSave)) { _ in
+                showSavedToast = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    showSavedToast = false
+                }
+            }
+            .overlay(alignment: .top) {
+                if showSavedToast {
+                    Text("Saved")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.green.opacity(0.9))
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                        .padding(.top, 12)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showSavedToast)
     }
 
     private func setUpSwiftDataStore() {

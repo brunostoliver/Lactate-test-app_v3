@@ -860,6 +860,12 @@ extension ContentView {
                     .buttonStyle(SecondaryActionButtonStyle())
                 }
 
+                if showSavedConfirmation {
+                    Text("Saved")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.green)
+                }
             }
         }
     }

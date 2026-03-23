@@ -141,6 +141,7 @@ struct ContentView: View {
     @State var scrollView: UIScrollView? = nil
     @State var editorDestination: EditorDestination? = nil
     @State var showSampleTestPicker: Bool = false
+    @State var showSavedConfirmation: Bool = false
 
     init(
         store: SwiftDataTestsStore,
@@ -811,10 +812,46 @@ struct ContentView: View {
     }
 
     func saveCurrentTest() {
+        let savedTest: LactateTest
+
         if let editingTest {
             store.updateTest(editingTest, with: draft)
+            savedTest = draft.asLactateTest()
+            self.editingTest = savedTest
         } else {
-            store.appendTest(draft.asLactateTest())
+            let newTest = draft.asLactateTest()
+            store.appendTest(newTest)
+            savedTest = newTest
+            self.editingTest = newTest
+        }
+
+        loadedTestMode = .editing
+        showSavedConfirmation = true
+        NotificationCenter.default.post(name: .lactateTestDidSave, object: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            showSavedConfirmation = false
+        }
+
+        if isEditorScreen && isUsingExternalEditorDestination {
+            if let externalEditorDestination {
+                externalEditorDestination.wrappedValue = EditorDestination(test: savedTest)
+            }
+            draft = LactateTestDraft(
+                athleteID: savedTest.athleteID,
+                athleteName: savedTest.athleteName,
+                testName: savedTest.resolvedTestName,
+                restingLactate: savedTest.restingLactate,
+                bodyMassKg: savedTest.bodyMassKg,
+                temperatureCelsius: savedTest.temperatureCelsius,
+                temperatureUnit: savedTest.temperatureUnit,
+                humidityPercent: savedTest.humidityPercent,
+                terrain: savedTest.terrain ?? "",
+                notes: savedTest.notes ?? "",
+                sport: savedTest.sport,
+                date: savedTest.date,
+                steps: savedTest.steps
+            )
+            return
         }
 
         if isEditorScreen {
@@ -1001,6 +1038,7 @@ struct ContentView: View {
         draft.reset()
         editingTest = nil
         loadedTestMode = nil
+        showSavedConfirmation = false
         graphXAxis = .power
         selectedGraphPoint = nil
         applySelectedAthlete(force: true)

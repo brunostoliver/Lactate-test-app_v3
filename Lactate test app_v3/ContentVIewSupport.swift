@@ -1,4 +1,9 @@
 import SwiftUI
+import Foundation
+
+extension Notification.Name {
+    static let lactateTestDidSave = Notification.Name("lactateTestDidSave")
+}
 
 enum ThresholdInfoTopic: String, Identifiable {
     case lt1
