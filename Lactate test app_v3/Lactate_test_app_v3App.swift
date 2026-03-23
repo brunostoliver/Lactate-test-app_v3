@@ -69,16 +69,33 @@ private struct RootView: View {
             }
             .overlay(alignment: .top) {
                 if showSavedToast {
-                    Text("Saved")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.green.opacity(0.9))
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                        .padding(.top, 12)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                    EmptyView()
+                }
+            }
+            .overlay {
+                if showSavedToast {
+                    VStack {
+                        Spacer()
+
+                        VStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(.green)
+
+                            Text("Saved")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 20)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(radius: 12)
+
+                        Spacer()
+                    }
+                    .padding()
+                    .transition(.opacity.combined(with: .scale))
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showSavedToast)
